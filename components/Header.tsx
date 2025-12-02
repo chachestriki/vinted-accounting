@@ -15,11 +15,11 @@ const links: {
 }[] = [
   {
     href: "/#pricing",
-    label: "Pricing",
+    label: "Precio",
   },
   {
     href: "/#testimonials",
-    label: "Reviews",
+    label: "Testimonios",
   },
   {
     href: "/#faq",

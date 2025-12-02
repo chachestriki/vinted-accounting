@@ -1,6 +1,7 @@
 import Image from "next/image";
 import TestimonialsAvatars from "./TestimonialsAvatars";
 import config from "@/config";
+import ButtonLead from "@/components/ButtonLead";
 
 const Hero = () => {
   return (
@@ -22,15 +23,16 @@ const Hero = () => {
         </a>
 
         <h1 className="font-extrabold text-4xl lg:text-6xl tracking-tight md:-mb-4">
-          Ship your startup in days, not weeks
+        Deja de adivinar tus ganancias. Empieza a controlarlas.
         </h1>
         <p className="text-lg opacity-80 leading-relaxed">
-          The NextJS boilerplate with all you need to build your SaaS, AI tool,
-          or any other web app. From idea to production in 5 minutes.
+        La herramienta pensada para revendedores: registra compras, ventas, gastos, 
+        inventario y ganancias en segundos. Olvídate de Excel, cálculos manuales y 
+        perder dinero por no llevar tus números al día.
+
         </p>
-        <button className="btn btn-primary btn-wide">
-          Get {config.appName}
-        </button>
+        <ButtonLead/>
+        
 
         <TestimonialsAvatars priority={true} />
       </div>
