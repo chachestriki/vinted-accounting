@@ -2,6 +2,7 @@ import Image from "next/image";
 import TestimonialsAvatars from "./TestimonialsAvatars";
 import config from "@/config";
 import ButtonLead from "@/components/ButtonLead";
+import ButtonSignin from "@/components/ButtonSignin";
 
 const Hero = () => {
   return (
@@ -31,7 +32,7 @@ const Hero = () => {
         perder dinero por no llevar tus números al día.
 
         </p>
-        <ButtonLead/>
+        <ButtonSignin/>
         
 
         <TestimonialsAvatars priority={true} />

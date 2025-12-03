@@ -12,15 +12,15 @@ import config from "@/config";
 // You are an excellent lawyer.
 
 // I need your help to write a simple Terms & Services for my website. Here is some context:
-// - Website: https://shipfa.st
-// - Name: ShipFast
-// - Contact information: marc@shipfa.st
+// - Website: https://vintflow.com
+// - Name: Vintflow
+// - Contact information: vintflow@gmail.com
 // - Description: A JavaScript code boilerplate to help entrepreneurs launch their startups faster
 // - Ownership: when buying a package, users can download code to create apps. They own the code but they do not have the right to resell it. They can ask for a full refund within 7 day after the purchase.
 // - User data collected: name, email and payment information
 // - Non-personal data collection: web cookies
-// - Link to privacy-policy: https://shipfa.st/privacy-policy
-// - Governing Law: France
+// - Link to privacy-policy: https://vintflow.com/privacy-policy
+// - Governing Law: Spain
 // - Updates to the Terms: users will be updated by email
 
 // Please write a simple Terms & Services for my site. Add the current date. Do not add or explain your reasoning. Answer:
@@ -59,37 +59,90 @@ const TOS = () => {
         >
           {`Last Updated: September 26, 2023
 
-Welcome to ShipFast!
+**Terms & Services — Vintflow**
+**Last updated: December 2, 2025**
 
-These Terms of Service ("Terms") govern your use of the ShipFast website at https://shipfa.st ("Website") and the services provided by ShipFast. By using our Website and services, you agree to these Terms.
+These Terms & Services (“Terms”) govern your use of **Vintflow** (“we”, “our”, “us”) and the services provided through **[https://vintflow.com](https://vintflow.com)** (“Website”). By accessing or using the Website, you agree to these Terms.
 
-1. Description of ShipFast
+---
 
-ShipFast is a platform that offers a JavaScript code boilerplate to assist entrepreneurs in launching their startups more efficiently.
+## 1. Description of Service
 
-2. Ownership and Usage Rights
+Vintflow provides a JavaScript code boilerplate designed to help entrepreneurs launch their startups faster. Users may purchase packages that allow them to download code to build their own applications.
 
-When you purchase a package from ShipFast, you gain the right to download and use the code provided for creating applications. You own the code you create but do not have the right to resell it. We offer a full refund within 7 days of purchase, as specified in our refund policy.
+---
 
-3. User Data and Privacy
+## 2. Ownership and Usage Rights
 
-We collect and store user data, including name, email, and payment information, as necessary to provide our services. For details on how we handle your data, please refer to our Privacy Policy at https://shipfa.st/privacy-policy.
+When you purchase a package from Vintflow, you receive the right to download and use the provided code for your personal or business projects.
 
-4. Non-Personal Data Collection
+You **retain ownership** of any code you build using our boilerplate; however, you **may not resell, redistribute, or sublicense** the boilerplate code or any substantial derivative of it as a standalone product.
 
-We use web cookies to collect non-personal data for the purpose of improving our services and user experience.
+---
 
-5. Governing Law
+## 3. Refund Policy
 
-These Terms are governed by the laws of France.
+You may request a **full refund within 7 days** of your purchase. After this period, all sales are considered final. Refund requests may be submitted to:
+**[vintflow@gmail.com](mailto:vintflow@gmail.com)**
 
-6. Updates to the Terms
+---
 
-We may update these Terms from time to time. Users will be notified of any changes via email.
+## 4. User Data
 
-For any questions or concerns regarding these Terms of Service, please contact us at marc@shipfa.st.
+We collect the following personal information when you interact with our Website:
 
-Thank you for using ShipFast!`}
+* Name
+* Email address
+* Payment information
+
+Our use and handling of personal data is governed by our Privacy Policy:
+**[https://vintflow.com/privacy-policy](https://vintflow.com/privacy-policy)**
+
+---
+
+## 5. Cookies and Non-Personal Data
+
+The Website uses cookies and other tracking technologies to improve user experience and analyze website usage. These cookies may collect non-personal information such as browser type, device information, and general usage behavior.
+
+---
+
+## 6. User Responsibilities
+
+By using Vintflow, you agree to:
+
+* Provide accurate information during purchase.
+* Use the downloaded code in accordance with these Terms.
+* Not attempt to harm, disrupt, or misuse the Website or its services.
+
+---
+
+## 7. Limitation of Liability
+
+Vintflow is provided “as is” without any warranties, express or implied. We are not responsible for any damages, losses, or issues resulting from the use or misuse of our code, Website, or services.
+
+---
+
+## 8. Governing Law
+
+These Terms are governed by and interpreted in accordance with the laws of **Spain**, without regard to its conflict-of-law provisions.
+
+---
+
+## 9. Updates to the Terms
+
+We may update these Terms from time to time. If changes occur, users will be notified by email using the address provided during purchase.
+
+---
+
+## 10. Contact
+
+For questions or concerns regarding these Terms, please contact us at:
+**[vintflow@gmail.com](mailto:vintflow@gmail.com)**
+
+---
+
+By using Vintflow or purchasing any package, you acknowledge that you have read, understood, and agreed to these Terms & Services.
+`}
         </pre>
       </div>
     </main>
