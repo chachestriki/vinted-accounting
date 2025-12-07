@@ -24,10 +24,11 @@ const nextConfig = {
   },
   webpack: (config, { webpack, isServer }) => {
     // Ignore MongoDB's optional dependencies to prevent build warnings
+    // Note: gcp-metadata is needed for googleapis, so it's removed from the ignore list
     if (isServer) {
       config.plugins.push(
         new webpack.IgnorePlugin({
-          resourceRegExp: /^(kerberos|@mongodb-js\/zstd|@aws-sdk\/credential-providers|gcp-metadata|snappy|socks|aws4|mongodb-client-encryption)$/,
+          resourceRegExp: /^(kerberos|@mongodb-js\/zstd|@aws-sdk\/credential-providers|snappy|socks|aws4|mongodb-client-encryption)$/,
         })
       );
     }

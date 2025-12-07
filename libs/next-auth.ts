@@ -13,6 +13,13 @@ export const authOptions = {
       // Follow the "Login with Google" tutorial to get your credentials
       clientId: process.env.GOOGLE_ID!,
       clientSecret: process.env.GOOGLE_SECRET!,
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
       profile(profile) {
         return {
           id: profile.sub,
@@ -47,9 +54,22 @@ export const authOptions = {
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
+    async jwt({ token, account, user }: any) {
+      // Store access token and refresh token on initial sign in
+      if (account && user) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.accessTokenExpires = account.expires_at * 1000; // Convert to milliseconds
+      }
+      return token;
+    },
     session: async ({ session, token }: any) => {
       if (session?.user) {
         session.user.id = token.sub;
+        // Add tokens to session for API routes
+        session.accessToken = token.accessToken;
+        session.refreshToken = token.refreshToken;
+        session.accessTokenExpires = token.accessTokenExpires;
       }
       return session;
     },
