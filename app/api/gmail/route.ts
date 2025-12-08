@@ -4,11 +4,14 @@ import {
   getGmailClient,
   refreshAccessToken,
   searchVintedEmails,
-  getEmailDetails,
+  getEmailDetailsBatch,
 } from "@/libs/gmail-api";
 import { calculateWeeklySummary } from "@/libs/gmail-utils";
 
 export const dynamic = "force-dynamic";
+
+// Aumentar el tiempo de timeout para procesar muchos correos
+export const maxDuration = 60; // 60 segundos
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,7 +42,7 @@ export async function GET(req: NextRequest) {
           error:
             "No Gmail access token found. Please sign in with Google and grant Gmail permissions.",
         },
-        { status: 400 } // Use 400 instead of 403 to avoid "Pick a plan" error
+        { status: 400 }
       );
     }
 
@@ -68,7 +71,7 @@ export async function GET(req: NextRequest) {
             error:
               "Failed to refresh access token. Please sign in again with Google.",
           },
-          { status: 400 } // Use 400 instead of 403 to avoid "Pick a plan" error
+          { status: 400 }
         );
       }
     }
@@ -76,14 +79,14 @@ export async function GET(req: NextRequest) {
     // Get Gmail client
     const gmail = getGmailClient(accessToken);
 
-    // Search for Vinted emails
-    console.log("🔍 Searching for Vinted emails...");
+    // Search for ALL Vinted emails (sin límite)
+    console.log("🔍 Searching for ALL Vinted emails (sin límite)...");
     const messageIds = await searchVintedEmails(
       gmail,
       'from:no-reply@vinted.es "Transferencia a tu saldo Vinted"'
     );
 
-    console.log("📬 Found message IDs:", messageIds);
+    console.log(`📬 Total de correos encontrados: ${messageIds.length}`);
 
     if (messageIds.length === 0) {
       console.log("⚠️ No Vinted emails found");
@@ -92,34 +95,30 @@ export async function GET(req: NextRequest) {
         count: 0,
         weeklyTotal: 0,
         weeklyCount: 0,
+        monthlyTotal: 0,
+        monthlyCount: 0,
         details: [],
       });
     }
 
-    // Get details for each email
-    const emailDetailsPromises = messageIds.map((messageId) =>
-      getEmailDetails(gmail, messageId)
-    );
-
-    const emailDetailsResults = await Promise.all(emailDetailsPromises);
+    // Get details for each email using batch processing
+    console.log("📧 Procesando detalles de correos en lotes...");
+    const emailDetailsResults = await getEmailDetailsBatch(gmail, messageIds, 20);
 
     // Filter out null results (emails that couldn't be parsed)
     const emailDetails = emailDetailsResults.filter(
       (detail): detail is NonNullable<typeof detail> => detail !== null
     );
 
-    // Calculate weekly summary
+    // Calculate summary
     const summary = calculateWeeklySummary(emailDetails);
 
-    console.log("📧 Message IDs found:", messageIds.length);
-    console.log("📧 Email details parsed:", emailDetails.length);
-    console.log("📊 Summary calculated:", {
-      total: summary.total,
-      count: summary.count,
-      weeklyTotal: summary.weeklyTotal,
-      weeklyCount: summary.weeklyCount,
-      detailsLength: summary.details.length,
-    });
+    console.log("✅ Procesamiento completado:");
+    console.log(`   📧 Correos encontrados: ${messageIds.length}`);
+    console.log(`   📊 Correos procesados exitosamente: ${emailDetails.length}`);
+    console.log(`   💰 Total general: €${summary.total.toFixed(2)}`);
+    console.log(`   📅 Esta semana: €${summary.weeklyTotal.toFixed(2)} (${summary.weeklyCount} ventas)`);
+    console.log(`   📅 Este mes: €${summary.monthlyTotal.toFixed(2)} (${summary.monthlyCount} ventas)`);
 
     return NextResponse.json(summary);
   } catch (error: any) {
@@ -142,7 +141,7 @@ export async function GET(req: NextRequest) {
           error:
             "Gmail permissions denied. Please grant Gmail read permissions when signing in.",
         },
-        { status: 400 } // Use 400 instead of 403 to avoid "Pick a plan" error
+        { status: 400 }
       );
     }
 
@@ -154,4 +153,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
