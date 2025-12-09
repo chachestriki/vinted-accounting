@@ -15,6 +15,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import apiClient from "@/libs/api";
 
@@ -90,6 +92,14 @@ export default function SalesPage() {
     saleDate: new Date().toISOString().split("T")[0],
   });
 
+  // Edit sale modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [savingSale, setSavingSale] = useState(false);
+
+  // Delete confirmation
+  const [deletingSale, setDeletingSale] = useState<string | null>(null);
+
   // Pagination for completed sales
   const [completedPage, setCompletedPage] = useState(1);
 
@@ -157,6 +167,53 @@ export default function SalesPage() {
       alert(err?.response?.data?.error || "Error al añadir la venta");
     } finally {
       setAddingSale(false);
+    }
+  };
+
+  const openEditModal = (sale: Sale) => {
+    setEditingSale(sale);
+    setShowEditModal(true);
+  };
+
+  const handleEditSale = async () => {
+    if (!editingSale) return;
+
+    try {
+      setSavingSale(true);
+      await apiClient.patch(`/sales/${editingSale._id}`, {
+        itemName: editingSale.itemName,
+        amount: editingSale.amount,
+        purchasePrice: editingSale.purchasePrice || 0,
+        status: editingSale.status,
+        saleDate: editingSale.saleDate,
+        shippingCarrier: editingSale.shippingCarrier,
+      });
+
+      setShowEditModal(false);
+      setEditingSale(null);
+      await fetchSalesData();
+    } catch (err: any) {
+      console.error("Error editing sale:", err);
+      alert(err?.response?.data?.error || "Error al editar la venta");
+    } finally {
+      setSavingSale(false);
+    }
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta venta?")) {
+      return;
+    }
+
+    try {
+      setDeletingSale(saleId);
+      await apiClient.delete(`/sales/${saleId}`);
+      await fetchSalesData();
+    } catch (err: any) {
+      console.error("Error deleting sale:", err);
+      alert(err?.response?.data?.error || "Error al eliminar la venta");
+    } finally {
+      setDeletingSale(null);
     }
   };
 
@@ -243,20 +300,22 @@ export default function SalesPage() {
     }
   };
 
-  // Filter pending sales
+  // Filter pending sales and sort by date (most recent first)
   const now = new Date();
-  const pendingSales = (salesData?.sales || []).filter(s => {
-    if (s.status !== "pending") return false;
-    
-    if (s.shippingDeadline) {
-      const deadline = new Date(s.shippingDeadline);
-      return now <= deadline;
-    }
-    
-    const saleDate = new Date(s.saleDate);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return saleDate >= sevenDaysAgo;
-  });
+  const pendingSales = (salesData?.sales || [])
+    .filter(s => {
+      if (s.status !== "pending") return false;
+      
+      if (s.shippingDeadline) {
+        const deadline = new Date(s.shippingDeadline);
+        return now <= deadline;
+      }
+      
+      const saleDate = new Date(s.saleDate);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return saleDate >= sevenDaysAgo;
+    })
+    .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
 
   const completedSales = (salesData?.sales || []).filter(s => s.status === "completed");
   
@@ -395,15 +454,13 @@ export default function SalesPage() {
                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                             Etiqueta
                           </th>
+                          <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">
+                            Acciones
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {pendingSales
-                          .sort(
-                            (a, b) =>
-                              new Date(a.shippingDeadline || a.saleDate).getTime() -
-                              new Date(b.shippingDeadline || b.saleDate).getTime()
-                          )
                           .map((sale) => (
                             <tr
                               key={sale._id}
@@ -473,6 +530,29 @@ export default function SalesPage() {
                                     No disponible
                                   </span>
                                 )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => openEditModal(sale)}
+                                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                    title="Editar"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSale(sale._id)}
+                                    disabled={deletingSale === sale._id}
+                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                    title="Eliminar"
+                                  >
+                                    {deletingSale === sale._id ? (
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -560,6 +640,9 @@ export default function SalesPage() {
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                               Estado
                             </th>
+                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">
+                              Acciones
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -607,6 +690,29 @@ export default function SalesPage() {
                                   <CheckCircle className="w-3 h-3" />
                                   Completada
                                 </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => openEditModal(sale)}
+                                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                    title="Editar"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSale(sale._id)}
+                                    disabled={deletingSale === sale._id}
+                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                    title="Eliminar"
+                                  >
+                                    {deletingSale === sale._id ? (
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -761,6 +867,155 @@ export default function SalesPage() {
                   </span>
                 ) : (
                   "Añadir Venta"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sale Modal */}
+      {showEditModal && editingSale && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Editar Venta
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Actualiza la información de la venta.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Artículo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingSale.itemName}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, itemName: e.target.value })
+                  }
+                  placeholder="Ej: Nike Air Max 95"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Coste (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingSale.purchasePrice || ""}
+                    onChange={(e) =>
+                      setEditingSale({ ...editingSale, purchasePrice: parseFloat(e.target.value) || 0 })
+                    }
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Precio de Venta (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editingSale.amount}
+                    onChange={(e) =>
+                      setEditingSale({ ...editingSale, amount: parseFloat(e.target.value) || 0 })
+                    }
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado
+                </label>
+                <select
+                  value={editingSale.status}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, status: e.target.value as "pending" | "completed" | "cancelled" })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="completed">Completada</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Compañía de Envío
+                </label>
+                <select
+                  value={editingSale.shippingCarrier}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, shippingCarrier: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="unknown">Manual</option>
+                  <option value="correos">Correos</option>
+                  <option value="inpost">InPost</option>
+                  <option value="seur">SEUR</option>
+                  <option value="vintedgo">Vinted Go</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Venta
+                </label>
+                <input
+                  type="date"
+                  value={new Date(editingSale.saleDate).toISOString().split("T")[0]}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, saleDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEditSale}
+                disabled={savingSale || !editingSale.itemName.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {savingSale ? (
+                  <span className="flex items-center gap-2">
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Guardando...
+                  </span>
+                ) : (
+                  "Actualizar Venta"
                 )}
               </button>
             </div>

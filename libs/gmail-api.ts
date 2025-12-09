@@ -1,6 +1,15 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
-import { parseVintedAmount, parseShippingCarrier, parseTrackingNumber, parseShippingDeadline, parseTransactionId } from "./gmail-utils";
+import { 
+  parseVintedAmount, 
+  parseShippingCarrier, 
+  parseTrackingNumber, 
+  parseShippingDeadline, 
+  parseTransactionId,
+  parseExpenseCategory,
+  parseExpenseAmount,
+  parseItemCount
+} from "./gmail-utils";
 
 /**
  * Get Gmail API client with OAuth2
@@ -343,7 +352,7 @@ export async function processEmailsBatch<T>(
     const batchPromises = batch.map((id) => processor(gmail, id));
     const batchResults = await Promise.all(batchPromises);
     
-    const validResults = batchResults.filter((r): r is T => r !== null);
+    const validResults = batchResults.filter((r): r is NonNullable<typeof r> => r !== null);
     results.push(...validResults);
 
     const processed = Math.min(i + batchSize, messageIds.length);
@@ -355,4 +364,94 @@ export async function processEmailsBatch<T>(
   }
 
   return results;
+}
+
+/**
+ * Search for Vinted expenses (Destacado, Armario, etc.)
+ */
+export async function searchVintedExpenses(gmail: any): Promise<string[]> {
+  return searchGmailEmails(
+    gmail,
+    'from:no-reply@vinted.es ("Tu factura" OR "destacado" OR "armario")'
+  );
+}
+
+// Tipo para detalles de gasto
+export interface ExpenseDetails {
+  messageId: string;
+  category: "destacado" | "armario" | "otros";
+  amount: number;
+  discount: number;
+  totalAmount: number;
+  description: string;
+  itemCount: number;
+  date: string;
+  snippet: string;
+}
+
+/**
+ * Get expense details from Vinted email
+ */
+export async function getExpenseDetails(
+  gmail: any,
+  messageId: string
+): Promise<ExpenseDetails | null> {
+  try {
+    const response = await gmail.users.messages.get({
+      userId: "me",
+      id: messageId,
+      format: "full",
+    });
+
+    const message = response.data;
+    const headers = message.payload?.headers || [];
+    const dateHeader = headers.find((h: any) => h.name === "Date");
+    const subjectHeader = headers.find((h: any) => h.name === "Subject");
+    const date = dateHeader?.value || message.internalDate || "";
+    const subject = subjectHeader?.value || "";
+
+    // Get email body
+    let bodyText = extractTextFromMessage(message);
+    const text = bodyText || message.snippet || "";
+
+    // Parse category
+    const category = parseExpenseCategory(text, subject);
+
+    // Parse amounts
+    const amounts = parseExpenseAmount(text);
+    if (!amounts) {
+      return null;
+    }
+
+    // Parse item count
+    const itemCount = parseItemCount(text);
+
+    // Build description
+    let description = "";
+    if (category === "destacado") {
+      description = itemCount > 0 
+        ? `Destacado internacional de 3 días (${itemCount} artículos)`
+        : "Destacado internacional de 3 días";
+    } else if (category === "armario") {
+      description = "Armario";
+    } else {
+      // Extract from subject or body
+      description = subject || "Gasto Vinted";
+    }
+
+    return {
+      messageId,
+      category,
+      amount: amounts.amount,
+      discount: amounts.discount,
+      totalAmount: amounts.total,
+      description,
+      itemCount,
+      date: new Date(date).toISOString(),
+      snippet: message.snippet || text.substring(0, 200),
+    };
+  } catch (error) {
+    console.error(`Error getting expense ${messageId}:`, error);
+    return null;
+  }
 }
