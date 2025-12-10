@@ -14,6 +14,8 @@ import {
 import MetricCard from "@/components/MetricCard";
 import DateFilter, { type DateRange } from "@/components/DateFilter";
 import apiClient from "@/libs/api";
+import SyncButton from "@/components/sync/SyncButton";
+import SyncStatus from "@/components/sync/SyncStatus";
 
 interface SaleStats {
   pending: { count: number; totalAmount: number };
@@ -317,14 +319,12 @@ export default function Dashboard() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 mt-4 md:mt-0">
-            <button 
-              onClick={syncSales}
-              disabled={syncing || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Sincronizando...' : 'Sincronizar Gmail'}
-            </button>
+            {/* New Gmail Sync System */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg">
+              <SyncStatus />
+            </div>
+            <SyncButton />
+            
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               <Eye className="w-4 h-4" />
               Ver Items

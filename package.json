@@ -18,6 +18,7 @@
     "@next/mdx": "^15.4.6",
     "axios": "^1.11.0",
     "crisp-sdk-web": "^1.0.22",
+    "dotenv": "^17.2.3",
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.4.6",
     "form-data": "^4.0.0",

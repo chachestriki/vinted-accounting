@@ -27,9 +27,7 @@ const Hero = () => {
         Deja de adivinar tus ganancias. Empieza a controlarlas.
         </h1>
         <p className="text-lg opacity-80 leading-relaxed">
-        La herramienta pensada para revendedores: registra compras, ventas, gastos, 
-        inventario y ganancias en segundos. Olvídate de Excel, cálculos manuales y 
-        perder dinero por no llevar tus números al día.
+        La herramienta pensada para revendedores: registra compras, ventas, gastos en segundos.
 
         </p>
         <ButtonSignin/>

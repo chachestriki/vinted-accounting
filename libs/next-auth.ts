@@ -4,6 +4,8 @@ import EmailProvider from "next-auth/providers/email";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
+import User from "@/models/User";
+import mongoose from "./mongoose";
 
 export const authOptions = {
   // Set any random key in .env.local
@@ -54,6 +56,29 @@ export const authOptions = {
   ...(connectMongo && { adapter: MongoDBAdapter(connectMongo) }),
 
   callbacks: {
+    async signIn({ user, account, profile }: any) {
+      // Save Gmail OAuth tokens to User model when signing in with Google
+      if (account?.provider === "google" && account.access_token) {
+        try {
+          await mongoose();
+          await User.findOneAndUpdate(
+            { email: user.email },
+            {
+              $set: {
+                gmailAccessToken: account.access_token,
+                gmailRefreshToken: account.refresh_token,
+                gmailTokenExpiry: account.expires_at ? account.expires_at * 1000 : null,
+                gmailConnectedAt: new Date(),
+              },
+            },
+            { upsert: true }
+          );
+        } catch (error) {
+          console.error("Error saving Gmail tokens:", error);
+        }
+      }
+      return true;
+    },
     async jwt({ token, account, user }: any) {
       // Store access token and refresh token on initial sign in
       if (account && user) {
