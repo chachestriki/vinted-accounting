@@ -97,6 +97,16 @@ export async function searchVintedPendingSales(gmail: any): Promise<string[]> {
   );
 }
 
+/**
+ * Search for Vinted expenses (armario and destacado invoices)
+ */
+export async function searchVintedExpenses(gmail: any): Promise<string[]> {
+  return searchGmailEmails(
+    gmail,
+    'from:no-reply@vinted.es (subject:"factura de armario" OR subject:"factura de artículos destacados")'
+  );
+}
+
 // Tipo para detalles de venta completada
 export interface CompletedSaleDetails {
   messageId: string;
@@ -118,6 +128,16 @@ export interface PendingSaleDetails {
   date: string;
   hasAttachment: boolean;
   attachmentId?: string;
+  snippet: string;
+}
+
+// Tipo para detalles de gasto (armario o destacado)
+export interface ExpenseDetails {
+  messageId: string;
+  type: "armario" | "destacado";
+  description: string;
+  amount: number;
+  date: string;
   snippet: string;
 }
 
@@ -150,18 +170,81 @@ export async function getCompletedSaleDetails(
       return null;
     }
 
-    // Extract item name
-    const itemNameMatch = text.match(/El pedido de "([^"]+)"/);
-    const itemName = itemNameMatch ? itemNameMatch[1] : "Artículo desconocido";
-
-    // Extract transaction ID - usar función mejorada
-    const transactionId = parseTransactionId(text);
+    // Extract item name - formato exacto: "El pedido de "nombre del artículo" ha finalizado"
+    let itemName = "Artículo desconocido";
     
-    // Si no se encuentra el transactionId, no es una venta válida
-    if (!transactionId) {
-      console.log(`⚠️ No se encontró transactionId en correo ${messageId}`);
-      return null;
+    // Limpiar HTML y CSS del texto antes de procesar
+    let cleanText = text
+      // Eliminar etiquetas HTML
+      .replace(/<[^>]+>/g, " ")
+      // Eliminar estilos CSS inline (style="...")
+      .replace(/style\s*=\s*"[^"]*"/gi, " ")
+      // Eliminar propiedades CSS sueltas (line-height: 1.5;)
+      .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
+      // Eliminar llaves CSS
+      .replace(/[{}]/g, " ")
+      // Normalizar espacios
+      .replace(/\s+/g, " ")
+      .replace(/\n/g, " ")
+      .trim();
+    
+    const itemNamePatterns = [
+      // Patrón exacto del formato: "El pedido de "nombre" ha finalizado"
+      /El pedido de\s+"([^"]+)"\s+ha finalizado/i,
+      // Patrón sin "ha finalizado" al final
+      /El pedido de\s+"([^"]+)"/i,
+      // Variaciones sin mayúsculas
+      /el pedido de\s+"([^"]+)"/i,
+      // Con espacios o saltos de línea entre "de" y las comillas
+      /El pedido de\s*"([^"]+)"/i,
+      // Patrón más flexible que busca cualquier texto entre comillas después de "pedido de"
+      /pedido\s+de\s*"([^"]+)"/i,
+    ];
+    
+    for (const pattern of itemNamePatterns) {
+      const match = cleanText.match(pattern);
+      if (match && match[1] && match[1].trim().length > 0) {
+        const extractedName = match[1].trim();
+        // Validar que no sea CSS, HTML o texto genérico
+        const isInvalid = 
+          extractedName.toLowerCase() === "artículo" ||
+          extractedName.toLowerCase() === "pedido" ||
+          extractedName.length <= 2 ||
+          extractedName.match(/^\d+$/) || // Solo números
+          extractedName.includes(":") || // Propiedades CSS
+          extractedName.includes(";") || // Propiedades CSS
+          extractedName.includes("{") || // CSS
+          extractedName.includes("}") || // CSS
+          extractedName.match(/^[a-z-]+:\s*[^;]+$/i); // Patrón CSS (propiedad: valor)
+        
+        if (!isInvalid) {
+          itemName = extractedName;
+          break;
+        }
+      }
     }
+    
+    // Si aún no se encontró, buscar cualquier texto entre comillas después de "El pedido"
+    if (itemName === "Artículo desconocido") {
+      const fallbackMatch = cleanText.match(/El pedido[^"]*"([^"]{3,})"/i);
+      if (fallbackMatch && fallbackMatch[1]) {
+        const fallbackName = fallbackMatch[1].trim();
+        const isInvalid = 
+          fallbackName.length <= 2 || 
+          fallbackName.toLowerCase() === "artículo" || 
+          fallbackName.toLowerCase() === "pedido" ||
+          fallbackName.includes(":") ||
+          fallbackName.includes(";") ||
+          fallbackName.match(/^[a-z-]+:\s*[^;]+$/i);
+        
+        if (!isInvalid) {
+          itemName = fallbackName;
+        }
+      }
+    }
+
+    // Extract transaction ID - usar messageId como fallback si no se encuentra
+    const transactionId = parseTransactionId(text) || messageId;
 
     return {
       messageId,
@@ -214,14 +297,8 @@ export async function getPendingSaleDetails(
       }
     }
 
-    // Extract transaction ID - usar función mejorada
-    const transactionId = parseTransactionId(text);
-    
-    // Si no se encuentra el transactionId, no es una venta válida
-    if (!transactionId) {
-      console.log(`⚠️ No se encontró transactionId en correo de etiqueta ${messageId}`);
-      return null;
-    }
+    // Extract transaction ID - usar messageId como fallback si no se encuentra
+    const transactionId = parseTransactionId(text) || messageId;
 
     // Extract shipping carrier
     const shippingCarrier = parseShippingCarrier(text);
@@ -297,32 +374,139 @@ export async function getEmailAttachment(
 
 /**
  * Extract text from email message parts
+ * Prioriza texto plano sobre HTML para evitar CSS inline
  */
 function extractTextFromMessage(message: any): string {
   let bodyText = "";
+  let plainText = "";
+  let htmlText = "";
 
-  const extractText = (parts: any[]): string => {
-    let text = "";
+  const extractText = (parts: any[]): { plain: string; html: string } => {
+    let plain = "";
+    let html = "";
     for (const part of parts) {
       if (part.mimeType === "text/plain" && part.body?.data) {
-        text += Buffer.from(part.body.data, "base64").toString("utf-8");
+        plain += Buffer.from(part.body.data, "base64").toString("utf-8");
       } else if (part.mimeType === "text/html" && part.body?.data) {
-        const htmlText = Buffer.from(part.body.data, "base64").toString("utf-8");
-        text += htmlText;
+        html += Buffer.from(part.body.data, "base64").toString("utf-8");
       } else if (part.parts) {
-        text += extractText(part.parts);
+        const result = extractText(part.parts);
+        plain += result.plain;
+        html += result.html;
       }
     }
-    return text;
+    return { plain, html };
   };
 
   if (message.payload?.body?.data) {
-    bodyText = Buffer.from(message.payload.body.data, "base64").toString("utf-8");
+    const mimeType = message.payload?.mimeType || "";
+    if (mimeType === "text/plain") {
+      plainText = Buffer.from(message.payload.body.data, "base64").toString("utf-8");
+    } else {
+      htmlText = Buffer.from(message.payload.body.data, "base64").toString("utf-8");
+    }
   } else if (message.payload?.parts) {
-    bodyText = extractText(message.payload.parts);
+    const result = extractText(message.payload.parts);
+    plainText = result.plain;
+    htmlText = result.html;
+  }
+
+  // Priorizar texto plano, si no existe usar HTML limpiado
+  if (plainText) {
+    bodyText = plainText;
+  } else if (htmlText) {
+    // Limpiar HTML básico: eliminar etiquetas y estilos
+    bodyText = htmlText
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ") // Eliminar bloques <style>
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ") // Eliminar bloques <script>
+      .replace(/<[^>]+>/g, " ") // Eliminar todas las etiquetas HTML
+      .replace(/&nbsp;/g, " ") // Reemplazar &nbsp;
+      .replace(/&[a-z]+;/gi, " ") // Reemplazar otras entidades HTML
+      .replace(/\s+/g, " ") // Normalizar espacios
+      .trim();
   }
 
   return bodyText;
+}
+
+/**
+ * Get expense details from email (armario or destacado)
+ */
+export async function getExpenseDetails(
+  gmail: any,
+  messageId: string
+): Promise<ExpenseDetails | null> {
+  try {
+    const response = await gmail.users.messages.get({
+      userId: "me",
+      id: messageId,
+      format: "full",
+    });
+
+    const message = response.data;
+    const headers = message.payload?.headers || [];
+    const dateHeader = headers.find((h: any) => h.name === "Date");
+    const subjectHeader = headers.find((h: any) => h.name === "Subject");
+    const date = dateHeader?.value || message.internalDate || "";
+    const subject = subjectHeader?.value || "";
+
+    // Get email body
+    let bodyText = extractTextFromMessage(message);
+    const text = bodyText || message.snippet || "";
+
+    // Determinar tipo de gasto
+    let type: "armario" | "destacado" | null = null;
+    if (subject.toLowerCase().includes("armario") || text.toLowerCase().includes("armario en escaparate")) {
+      type = "armario";
+    } else if (subject.toLowerCase().includes("destacado") || text.toLowerCase().includes("artículos destacados")) {
+      type = "destacado";
+    }
+
+    if (!type) {
+      return null; // No es un gasto válido
+    }
+
+    // Extraer monto total
+    let amount = 0;
+    const amountPatterns = [
+      /Total[:\s]*([\d.,]+)\s*(€|EUR)/i,
+      /Total[^€]*([\d]{1,3}(?:\.[\d]{3})*(?:,[\d]{2})?|[\d]+(?:,[\d]{2})?)\s*(€|EUR)/i,
+    ];
+
+    for (const pattern of amountPatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const amountStr = match[1];
+        const normalized = amountStr.replace(/\./g, "").replace(",", ".");
+        const parsed = parseFloat(normalized);
+        if (!isNaN(parsed) && parsed > 0) {
+          amount = parsed;
+          break;
+        }
+      }
+    }
+
+    if (amount === 0) {
+      return null; // No se pudo extraer el monto
+    }
+
+    // Descripción basada en el tipo
+    const description = type === "armario" 
+      ? "Armario en escaparate (7 días)"
+      : "Artículos destacados (3 días)";
+
+    return {
+      messageId,
+      type,
+      description,
+      amount,
+      date: new Date(date).toISOString(),
+      snippet: message.snippet || text.substring(0, 200),
+    };
+  } catch (error) {
+    console.error(`Error getting expense ${messageId}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -343,7 +527,7 @@ export async function processEmailsBatch<T>(
     const batchPromises = batch.map((id) => processor(gmail, id));
     const batchResults = await Promise.all(batchPromises);
     
-    const validResults = batchResults.filter((r): r is T => r !== null);
+    const validResults = batchResults.filter((r) => r !== null) as T[];
     results.push(...validResults);
 
     const processed = Math.min(i + batchSize, messageIds.length);

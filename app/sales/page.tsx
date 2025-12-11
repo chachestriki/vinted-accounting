@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Download,
-  RefreshCw,
   Package,
   CheckCircle,
   Clock,
@@ -15,6 +14,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import apiClient from "@/libs/api";
 
@@ -73,7 +74,6 @@ const ITEMS_PER_PAGE = 20;
 export default function SalesPage() {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPending, setSelectedPending] = useState<Set<string>>(new Set());
   const [downloadingLabel, setDownloadingLabel] = useState<string | null>(null);
@@ -92,6 +92,18 @@ export default function SalesPage() {
 
   // Pagination for completed sales
   const [completedPage, setCompletedPage] = useState(1);
+  
+  // Edit sale modal
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [editSaleForm, setEditSaleForm] = useState({
+    itemName: "",
+    purchasePrice: "",
+    salePrice: "",
+    saleDate: "",
+    status: "completed" as "pending" | "completed" | "cancelled",
+  });
+  const [updatingSale, setUpdatingSale] = useState(false);
+  const [deletingSale, setDeletingSale] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSalesData();
@@ -112,19 +124,6 @@ export default function SalesPage() {
     }
   };
 
-  const syncSales = async () => {
-    try {
-      setSyncing(true);
-      setError(null);
-      await apiClient.post("/sales/sync", {});
-      await fetchSalesData();
-    } catch (err: any) {
-      console.error("Error syncing:", err);
-      setError(err?.response?.data?.error || err?.message || "Error al sincronizar");
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const handleAddSale = async () => {
     if (!newSaleForm.itemName.trim()) {
@@ -184,9 +183,39 @@ export default function SalesPage() {
   const downloadSelectedLabels = async () => {
     if (selectedPending.size === 0) return;
 
-    for (const saleId of selectedPending) {
-      await downloadLabel(saleId);
-      await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      setDownloadingLabel("multiple");
+      
+      // Llamar al endpoint que concatena los PDFs
+      const saleIdsArray = Array.from(selectedPending);
+      const response = await fetch("/api/sales/label", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ saleIds: saleIdsArray }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al descargar las etiquetas");
+      }
+
+      // Descargar el PDF combinado
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `etiquetas-combinadas-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Error downloading labels:", err);
+      alert(err?.message || "Error al descargar las etiquetas");
+    } finally {
+      setDownloadingLabel(null);
     }
   };
 
@@ -207,6 +236,70 @@ export default function SalesPage() {
       newSelected.add(saleId);
     }
     setSelectedPending(newSelected);
+  };
+  
+  const openEditModal = (sale: Sale) => {
+    setEditingSale(sale);
+    setEditSaleForm({
+      itemName: sale.itemName,
+      purchasePrice: (sale.purchasePrice || 0).toString(),
+      salePrice: sale.amount.toString(),
+      saleDate: new Date(sale.saleDate).toISOString().split("T")[0],
+      status: sale.status,
+    });
+  };
+  
+  const updateSale = async () => {
+    if (!editingSale) return;
+    
+    try {
+      setUpdatingSale(true);
+      setError(null);
+      
+      if (!editSaleForm.itemName.trim()) {
+        setError("El nombre del artículo es requerido");
+        return;
+      }
+      
+      await apiClient.put(`/sales/${editingSale._id}`, {
+        itemName: editSaleForm.itemName,
+        purchasePrice: parseFloat(editSaleForm.purchasePrice) || 0,
+        salePrice: parseFloat(editSaleForm.salePrice) || 0,
+        saleDate: editSaleForm.saleDate,
+        status: editSaleForm.status,
+      });
+      
+      await fetchSalesData();
+      setEditingSale(null);
+    } catch (err: any) {
+      console.error("Error updating sale:", err);
+      setError(
+        err?.response?.data?.error || err?.message || "Error al actualizar la venta"
+      );
+    } finally {
+      setUpdatingSale(false);
+    }
+  };
+  
+  const deleteSale = async (saleId: string) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta venta?")) {
+      return;
+    }
+    
+    try {
+      setDeletingSale(saleId);
+      setError(null);
+      
+      await apiClient.delete(`/sales/${saleId}`);
+      await fetchSalesData();
+    } catch (err: any) {
+      console.error("Error deleting sale:", err);
+      setError(
+        err?.response?.data?.error || err?.message || "Error al eliminar la venta"
+      );
+    } finally {
+      setDeletingSale(null);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -285,16 +378,6 @@ export default function SalesPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 mt-4 md:mt-0">
-            <button
-              onClick={syncSales}
-              disabled={syncing || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Sincronizando..." : "Sincronizar Gmail"}
-            </button>
-          </div>
         </div>
 
         {loading && !salesData ? (
@@ -337,10 +420,20 @@ export default function SalesPage() {
                         e.stopPropagation();
                         downloadSelectedLabels();
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                      disabled={downloadingLabel === "multiple"}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Download className="w-4 h-4" />
-                      Descargar {selectedPending.size} Etiquetas
+                      {downloadingLabel === "multiple" ? (
+                        <>
+                          <span className="loading loading-spinner loading-xs"></span>
+                          Combinando PDFs...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Descargar {selectedPending.size} Etiquetas
+                        </>
+                      )}
                     </button>
                   )}
                   {showPending ? (
@@ -401,8 +494,8 @@ export default function SalesPage() {
                         {pendingSales
                           .sort(
                             (a, b) =>
-                              new Date(a.shippingDeadline || a.saleDate).getTime() -
-                              new Date(b.shippingDeadline || b.saleDate).getTime()
+                              new Date(b.saleDate).getTime() -
+                              new Date(a.saleDate).getTime()
                           )
                           .map((sale) => (
                             <tr
@@ -548,9 +641,6 @@ export default function SalesPage() {
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                               Artículo
                             </th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
-                              Compañía de Envío
-                            </th>
                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">
                               Coste
                             </th>
@@ -559,6 +649,9 @@ export default function SalesPage() {
                             </th>
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                               Estado
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                              Acciones
                             </th>
                           </tr>
                         </thead>
@@ -582,18 +675,6 @@ export default function SalesPage() {
                                   </p>
                                 </div>
                               </td>
-                              <td className="py-3 px-4">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                                    carrierColors[sale.shippingCarrier] ||
-                                    carrierColors.unknown
-                                  }`}
-                                >
-                                  <Truck className="w-3 h-3" />
-                                  {carrierNames[sale.shippingCarrier] ||
-                                    sale.shippingCarrier}
-                                </span>
-                              </td>
                               <td className="py-3 px-4 text-sm text-gray-500 text-right">
                                 {sale.purchasePrice && sale.purchasePrice > 0
                                   ? formatCurrency(sale.purchasePrice)
@@ -607,6 +688,29 @@ export default function SalesPage() {
                                   <CheckCircle className="w-3 h-3" />
                                   Completada
                                 </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                {sale.isManual ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button
+                                      onClick={() => openEditModal(sale)}
+                                      className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                      title="Editar"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteSale(sale._id)}
+                                      disabled={deletingSale === sale._id}
+                                      className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400">-</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -657,8 +761,8 @@ export default function SalesPage() {
 
       {/* Add Sale Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-md w-full pointer-events-auto animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -762,6 +866,118 @@ export default function SalesPage() {
                 ) : (
                   "Añadir Venta"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sale Modal */}
+      {editingSale && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-md w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Editar Venta</h2>
+              <button
+                onClick={() => setEditingSale(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Artículo
+                </label>
+                <input
+                  type="text"
+                  value={editSaleForm.itemName}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, itemName: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Precio de Compra (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editSaleForm.purchasePrice}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, purchasePrice: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Precio de Venta (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editSaleForm.salePrice}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, salePrice: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Venta
+                </label>
+                <input
+                  type="date"
+                  value={editSaleForm.saleDate}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, saleDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado
+                </label>
+                <select
+                  value={editSaleForm.status}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, status: e.target.value as "pending" | "completed" | "cancelled" })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="completed">Completada</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setEditingSale(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={updateSale}
+                disabled={updatingSale}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {updatingSale ? "Actualizando..." : "Actualizar Venta"}
               </button>
             </div>
           </div>

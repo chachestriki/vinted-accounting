@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
 
         const saleData = {
           userId: user._id,
+          emailId: pending.messageId, // PRIMARY KEY
           transactionId: pending.transactionId,
           itemName: pending.itemName,
           amount: completed?.amount || 0,
@@ -136,14 +137,13 @@ export async function POST(req: NextRequest) {
           shippingDeadline: pending.shippingDeadline ? new Date(pending.shippingDeadline) : undefined,
           saleDate: new Date(pending.date),
           completedDate,
-          gmailMessageId: pending.messageId,
           labelMessageId: pending.messageId,
           hasLabel: pending.hasAttachment,
           snippet: pending.snippet,
         };
 
         const result = await Sale.findOneAndUpdate(
-          { userId: user._id, transactionId: pending.transactionId },
+          { emailId: pending.messageId }, // Buscar por emailId
           { $set: saleData },
           { upsert: true, new: true }
         );
@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
       try {
         const saleData = {
           userId: user._id,
+          emailId: completed.messageId, // PRIMARY KEY
           transactionId: completed.transactionId,
           itemName: completed.itemName,
           amount: completed.amount,
@@ -174,13 +175,12 @@ export async function POST(req: NextRequest) {
           shippingCarrier: "unknown" as const,
           saleDate: new Date(completed.date),
           completedDate: new Date(completed.date),
-          gmailMessageId: completed.messageId,
           hasLabel: false,
           snippet: completed.snippet,
         };
 
         const result = await Sale.findOneAndUpdate(
-          { userId: user._id, transactionId: completed.transactionId },
+          { emailId: completed.messageId }, // Buscar por emailId
           { $set: saleData },
           { upsert: true, new: true }
         );

@@ -107,10 +107,10 @@ export default function Dashboard() {
     try {
       setSyncing(true);
       setError(null);
-      await apiClient.post("/sales/sync", {});
+      await apiClient.post("/sync", {});
       await fetchSalesData();
     } catch (err: any) {
-      console.error("Error syncing sales:", err);
+      console.error("Error syncing:", err);
       setError(
         err?.response?.data?.error ||
           err?.message ||
@@ -323,11 +323,7 @@ export default function Dashboard() {
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Sincronizando...' : 'Sincronizar Gmail'}
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Eye className="w-4 h-4" />
-              Ver Items
+              {syncing ? 'Sincronizando...' : 'Sincronizar'}
             </button>
             <button 
               onClick={exportToCSV}
@@ -337,27 +333,10 @@ export default function Dashboard() {
               <Download className="w-4 h-4" />
               Exportar CSV
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 rounded-lg text-sm font-medium text-white hover:bg-gray-800 transition-colors">
-              <Plus className="w-4 h-4" />
-              Agregar Item
-            </button>
           </div>
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              Categorías
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              Marketplaces
-              <ChevronDown className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
+        
         {/* Date Filters */}
         <div className="mb-6">
           <DateFilter
@@ -512,46 +491,6 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Sales Insights Section */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Grid3X3 className="w-5 h-5 text-gray-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Estadísticas de Ventas
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <MetricCard
-                  title="Días Promedio Listados"
-                  value={insights.diasPromedioListados.toFixed(1)}
-                  tooltip="Promedio de días que un artículo está listado antes de venderse"
-                />
-                <MetricCard
-                  title="Descuento Promedio Dado"
-                  value={`${formatCurrency(insights.descuentoPromedio)} · ${insights.descuentoPorcentaje}%`}
-                  tooltip="Promedio de descuento aplicado en ventas"
-                />
-                <MetricCard
-                  title="Tasa de Venta"
-                  value={formatPercentage(insights.tasaVenta)}
-                  tooltip="Porcentaje de artículos listados que se venden"
-                />
-                <MetricCard
-                  title="Listados Diarios Promedio"
-                  value={insights.listadosDiarios.toFixed(2)}
-                  tooltip="Promedio de artículos listados por día"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <MetricCard
-                  title="Ventas Diarias Promedio"
-                  value={insights.ventasDiarias.toFixed(2)}
-                  tooltip="Promedio de ventas realizadas por día"
-                />
-              </div>
-            </div>
 
             {/* Quick Stats */}
             {salesData && (

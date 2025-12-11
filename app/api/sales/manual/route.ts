@@ -39,11 +39,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generar un transactionId único para ventas manuales
+    // Generar un emailId único para ventas manuales (usando timestamp + random)
+    const manualEmailId = `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const manualTransactionId = `MANUAL-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     const saleData = {
       userId: user._id,
+      emailId: manualEmailId, // PRIMARY KEY
       transactionId: manualTransactionId,
       itemName: itemName.trim(),
       amount: salePrice || 0,
@@ -52,7 +54,6 @@ export async function POST(req: NextRequest) {
       shippingCarrier: "unknown",
       saleDate: saleDate ? new Date(saleDate) : new Date(),
       completedDate: saleDate ? new Date(saleDate) : new Date(),
-      gmailMessageId: `manual-${manualTransactionId}`,
       hasLabel: false,
       isManual: true, // Marcar como venta manual
     };
