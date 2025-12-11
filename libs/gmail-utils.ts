@@ -331,3 +331,89 @@ export function isTrulyPending(saleDate: Date, shippingDeadline: Date | null): b
   // Si la fecha actual está entre la fecha de venta y la fecha de vencimiento
   return now >= saleDate && now <= shippingDeadline;
 }
+
+/**
+ * Parse expense category from Vinted email text
+ */
+export function parseExpenseCategory(text: string, subject: string): "destacado" | "armario" | "otros" {
+  const textLower = text.toLowerCase();
+  const subjectLower = subject.toLowerCase();
+  
+  if (textLower.includes("destacado") || subjectLower.includes("destacado")) {
+    return "destacado";
+  }
+  if (textLower.includes("armario") || subjectLower.includes("armario")) {
+    return "armario";
+  }
+  
+  return "otros";
+}
+
+/**
+ * Parse expense amount from Vinted email text
+ * Busca montos en formato europeo (ej: 7,08 €)
+ */
+export function parseExpenseAmount(text: string): { amount: number; discount: number; total: number } | null {
+  let amount = 0;
+  let discount = 0;
+  
+  // Buscar "Total" o similar
+  const totalRegex = /(?:Total|Saldo Vinted)[:\s]*([\d.,]+)\s*(€|EUR)/i;
+  const totalMatch = text.match(totalRegex);
+  
+  if (totalMatch) {
+    const amountStr = totalMatch[1];
+    const normalized = amountStr.replace(/\./g, "").replace(",", ".");
+    amount = parseFloat(normalized);
+  }
+  
+  // Buscar descuento
+  const discountRegex = /Descuento[:\s]*-?\s*([\d.,]+)\s*(€|EUR)/i;
+  const discountMatch = text.match(discountRegex);
+  
+  if (discountMatch) {
+    const discountStr = discountMatch[1];
+    const normalized = discountStr.replace(/\./g, "").replace(",", ".");
+    discount = parseFloat(normalized);
+  }
+  
+  // Si no encontramos total, buscar cualquier monto
+  if (amount === 0) {
+    const amountRegex = /([\d]{1,3}(?:,[\d]{2})?)\s*(€|EUR)/;
+    const amountMatch = text.match(amountRegex);
+    
+    if (amountMatch) {
+      const amountStr = amountMatch[1];
+      const normalized = amountStr.replace(",", ".");
+      amount = parseFloat(normalized);
+    }
+  }
+  
+  if (amount === 0) {
+    return null;
+  }
+  
+  const total = amount - discount;
+  
+  return { amount, discount, total };
+}
+
+/**
+ * Parse item count from Vinted expense email
+ * Busca "X artículos" o similar
+ */
+export function parseItemCount(text: string): number {
+  const patterns = [
+    /(\d+)\s*art[ií]culos?/i,
+    /destacado.*?(\d+)\s*art/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      return parseInt(match[1]);
+    }
+  }
+  
+  return 0;
+}

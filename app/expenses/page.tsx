@@ -306,6 +306,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -818,7 +819,171 @@ export default function ExpensesPage() {
           </div>
         )}
       </div>
+
+      {/* Add/Edit Expense Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {editingExpense ? "Editar Gasto" : "Añadir Nuevo Gasto"}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {editingExpense
+                    ? "Actualiza la información del gasto."
+                    : "Añade un gasto manual a tu registro."}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoría <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={expenseForm.category}
+                  onChange={(e) =>
+                    setExpenseForm({ ...expenseForm, category: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="destacado">Destacado</option>
+                  <option value="armario">Armario</option>
+                  <option value="otros">Otros</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monto (€) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={expenseForm.amount}
+                    onChange={(e) =>
+                      setExpenseForm({ ...expenseForm, amount: e.target.value })
+                    }
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descuento (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={expenseForm.discount}
+                    onChange={(e) =>
+                      setExpenseForm({ ...expenseForm, discount: e.target.value })
+                    }
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción
+                </label>
+                <input
+                  type="text"
+                  value={expenseForm.description}
+                  onChange={(e) =>
+                    setExpenseForm({ ...expenseForm, description: e.target.value })
+                  }
+                  placeholder="Ej: Destacado internacional de 3 días"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cantidad de Artículos
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={expenseForm.itemCount}
+                    onChange={(e) =>
+                      setExpenseForm({ ...expenseForm, itemCount: e.target.value })
+                    }
+                    placeholder="0"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={expenseForm.expenseDate}
+                    onChange={(e) =>
+                      setExpenseForm({ ...expenseForm, expenseDate: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {expenseForm.amount && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Total:</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency(
+                        parseFloat(expenseForm.amount || "0") -
+                          parseFloat(expenseForm.discount || "0")
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveExpense}
+                disabled={savingExpense || !expenseForm.category || !expenseForm.amount}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {savingExpense ? (
+                  <span className="flex items-center gap-2">
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Guardando...
+                  </span>
+                ) : editingExpense ? (
+                  "Actualizar Gasto"
+                ) : (
+                  "Añadir Gasto"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
