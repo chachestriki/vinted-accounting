@@ -15,9 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  Trash2,
-  Edit,
-  Trash2,
+  Trash2
 } from "lucide-react";
 import apiClient from "@/libs/api";
 
@@ -94,7 +92,6 @@ export default function SalesPage() {
 
   // Edit sale modal
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [savingSale, setSavingSale] = useState(false);
 
   // Delete confirmation
@@ -113,8 +110,7 @@ export default function SalesPage() {
     status: "completed" as "pending" | "completed" | "cancelled",
   });
   const [updatingSale, setUpdatingSale] = useState(false);
-  const [deletingSale, setDeletingSale] = useState<string | null>(null);
-
+  
   useEffect(() => {
     fetchSalesData();
   }, []);
@@ -295,16 +291,7 @@ export default function SalesPage() {
     setSelectedPending(newSelected);
   };
   
-  const openEditModal = (sale: Sale) => {
-    setEditingSale(sale);
-    setEditSaleForm({
-      itemName: sale.itemName,
-      purchasePrice: (sale.purchasePrice || 0).toString(),
-      salePrice: sale.amount.toString(),
-      saleDate: new Date(sale.saleDate).toISOString().split("T")[0],
-      status: sale.status,
-    });
-  };
+
   
   const updateSale = async () => {
     if (!editingSale) return;

@@ -106,15 +106,6 @@ export async function searchVintedPendingSales(gmail: any): Promise<string[]> {
   );
 }
 
-/**
- * Search for Vinted expenses (armario and destacado invoices)
- */
-export async function searchVintedExpenses(gmail: any): Promise<string[]> {
-  return searchGmailEmails(
-    gmail,
-    'from:no-reply@vinted.es (subject:"factura de armario" OR subject:"factura de artículos destacados")'
-  );
-}
 
 // Tipo para detalles de venta completada
 export interface CompletedSaleDetails {
@@ -438,85 +429,7 @@ function extractTextFromMessage(message: any): string {
   return bodyText;
 }
 
-/**
- * Get expense details from email (armario or destacado)
- */
-export async function getExpenseDetails(
-  gmail: any,
-  messageId: string
-): Promise<ExpenseDetails | null> {
-  try {
-    const response = await gmail.users.messages.get({
-      userId: "me",
-      id: messageId,
-      format: "full",
-    });
 
-    const message = response.data;
-    const headers = message.payload?.headers || [];
-    const dateHeader = headers.find((h: any) => h.name === "Date");
-    const subjectHeader = headers.find((h: any) => h.name === "Subject");
-    const date = dateHeader?.value || message.internalDate || "";
-    const subject = subjectHeader?.value || "";
-
-    // Get email body
-    let bodyText = extractTextFromMessage(message);
-    const text = bodyText || message.snippet || "";
-
-    // Determinar tipo de gasto
-    let type: "armario" | "destacado" | null = null;
-    if (subject.toLowerCase().includes("armario") || text.toLowerCase().includes("armario en escaparate")) {
-      type = "armario";
-    } else if (subject.toLowerCase().includes("destacado") || text.toLowerCase().includes("artículos destacados")) {
-      type = "destacado";
-    }
-
-    if (!type) {
-      return null; // No es un gasto válido
-    }
-
-    // Extraer monto total
-    let amount = 0;
-    const amountPatterns = [
-      /Total[:\s]*([\d.,]+)\s*(€|EUR)/i,
-      /Total[^€]*([\d]{1,3}(?:\.[\d]{3})*(?:,[\d]{2})?|[\d]+(?:,[\d]{2})?)\s*(€|EUR)/i,
-    ];
-
-    for (const pattern of amountPatterns) {
-      const match = text.match(pattern);
-      if (match) {
-        const amountStr = match[1];
-        const normalized = amountStr.replace(/\./g, "").replace(",", ".");
-        const parsed = parseFloat(normalized);
-        if (!isNaN(parsed) && parsed > 0) {
-          amount = parsed;
-          break;
-        }
-      }
-    }
-
-    if (amount === 0) {
-      return null; // No se pudo extraer el monto
-    }
-
-    // Descripción basada en el tipo
-    const description = type === "armario" 
-      ? "Armario en escaparate (7 días)"
-      : "Artículos destacados (3 días)";
-
-    return {
-      messageId,
-      type,
-      description,
-      amount,
-      date: new Date(date).toISOString(),
-      snippet: message.snippet || text.substring(0, 200),
-    };
-  } catch (error) {
-    console.error(`Error getting expense ${messageId}:`, error);
-    return null;
-  }
-}
 
 /**
  * Process emails in batches
@@ -560,18 +473,7 @@ export async function searchVintedExpenses(gmail: any): Promise<string[]> {
   );
 }
 
-// Tipo para detalles de gasto
-export interface ExpenseDetails {
-  messageId: string;
-  category: "destacado" | "armario" | "otros";
-  amount: number;
-  discount: number;
-  totalAmount: number;
-  description: string;
-  itemCount: number;
-  date: string;
-  snippet: string;
-}
+
 
 /**
  * Get expense details from Vinted email
