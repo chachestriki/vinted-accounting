@@ -22,6 +22,8 @@ export const maxDuration = 180; // 3 minutos para sincronización completa
 // POST - Sincronizar ventas desde Gmail a MongoDB
 export async function POST(req: NextRequest) {
   console.log("🚀 Iniciando sincronización...");
+  const lastSync = new Date();
+
   try {
     const session = await auth();
     console.log("✅ Sesión obtenida:", session?.user?.email || "No email");
@@ -376,6 +378,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Sincronización completada",
+      lastSync: lastSync.toISOString(),
       sales: {
         pendingEmailsFound: pendingMessageIds.length,
         completedEmailsFound: completedMessageIds.length,

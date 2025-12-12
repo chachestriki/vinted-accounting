@@ -64,6 +64,8 @@ export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange>("last3months");
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
   
   // Date picker personalizado
   const [customStartDate, setCustomStartDate] = useState<string>("");
@@ -107,7 +109,12 @@ export default function Dashboard() {
     try {
       setSyncing(true);
       setError(null);
-      await apiClient.post("/sync", {});
+      const res = await apiClient.post("/sync", {});
+
+      // Si el servidor devolvió lastSync, lo guardamos
+      if ((res as any).lastSync) {
+        setLastSync((res as any).lastSync);
+      }
       await fetchSalesData();
     } catch (err: any) {
       console.error("Error syncing:", err);
@@ -165,7 +172,8 @@ export default function Dashboard() {
     if (selectedDateRange === "custom" && (customStartDate || customEndDate)) {
       return sales;
     }
-    
+
+
     const now = new Date();
     let startDate: Date;
 
@@ -274,7 +282,7 @@ export default function Dashboard() {
   const exportToCSV = () => {
     if (!completedSales.length) return;
 
-    const headers = ["Fecha", "Artículo", "Monto", "ID Transacción", "Transportista"];
+    const headers = ["Fecha", "Artículo", "Monto"];
     const rows = completedSales.map(s => [
       new Date(s.saleDate).toLocaleDateString("es-ES"),
       s.itemName || "",
@@ -317,6 +325,23 @@ export default function Dashboard() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 mt-4 md:mt-0">
+            {/* BOX DE ÚLTIMA SINCRONIZACIÓN */}
+            {lastSync && (
+              <div className="px-3 py-2 bg-gray-100/60 backdrop-blur-sm border border-gray-200 rounded-lg text-xs text-gray-600 shadow-sm">
+                Última sincronización:
+                <br />
+                <span className="font-medium text-gray-800">
+                  {new Date(lastSync).toLocaleString("es-ES", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })}
+                </span>
+              </div>
+            )}
+
             <button 
               onClick={syncSales}
               disabled={syncing || loading}

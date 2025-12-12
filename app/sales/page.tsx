@@ -534,9 +534,7 @@ export default function SalesPage() {
                           <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                             Etiqueta
                           </th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">
-                            Acciones
-                          </th>
+
                         </tr>
                       </thead>
                       <tbody>
@@ -615,29 +613,6 @@ export default function SalesPage() {
                                     No disponible
                                   </span>
                                 )}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => openEditModal(sale)}
-                                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                    title="Editar"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteSale(sale._id)}
-                                    disabled={deletingSale === sale._id}
-                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                                    title="Eliminar"
-                                  >
-                                    {deletingSale === sale._id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      <Trash2 className="w-4 h-4" />
-                                    )}
-                                  </button>
-                                </div>
                               </td>
                             </tr>
                           ))}
