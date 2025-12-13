@@ -53,7 +53,7 @@ const config = {
         // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
         isFeatured: true,
         name: "Advanced",
-        description: "Soluciones avanzadas para tu negocio de reventa",
+        description: "Para revendedores que quieren escalar con control total",
         price: 29.95,
         priceAnchor: 49.95,
         features: [

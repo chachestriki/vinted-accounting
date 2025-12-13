@@ -25,7 +25,7 @@ const features = [
   {
     title: "Control de pedidos y ventas",
     description:
-      "Control de pedidos y ventas, gestión de stock, alertas de stock, etc.",
+      "Todo lo que vendes, siempre registrado y actualizado automáticamente.",
     type: "video",
     path: "https://d3m8mk7e1mf7xn.cloudfront.net/app/newsletter.webm",
     format: "video/webm",
@@ -48,7 +48,7 @@ const features = [
   {
     title: "Registro de gastos",
     description:
-      "Registro de gastos, control de gastos, control de beneficios, etc.",
+      "Nunca más olvides un gasto ni falsees tus beneficios.",
     type: "image",
     path: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3540&q=80",
     alt: "A computer",
@@ -72,7 +72,7 @@ const features = [
   {
     title: "Impresión de etiquetas",
     description:
-      "Impresión de etiquetas con impresora térmica, en función de tu compañía de envío.",
+      "Imprime tus etiquetas, en función de tu compañía de envío.",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -93,7 +93,7 @@ const features = [
   {
     title: "Inventario",
     description:
-      "Control de inventario, gestión de stock, alertas de stock, etc.",
+      "Sabe qué tienes, qué se vende y qué te está inmovilizando dinero.",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"

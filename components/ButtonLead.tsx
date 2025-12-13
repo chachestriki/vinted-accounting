@@ -21,7 +21,7 @@ const ButtonLead = ({ extraStyle }: { extraStyle?: string }) => {
     try {
       await apiClient.post("/lead", { email });
 
-      toast.success("Thanks for joining the waitlist!");
+      toast.success("Gracias por unirte a la lista de espera!");
 
       // just remove the focus on the input
       inputRef.current.blur();
@@ -54,7 +54,7 @@ const ButtonLead = ({ extraStyle }: { extraStyle?: string }) => {
         type="submit"
         disabled={isDisabled}
       >
-        Join waitlist
+        Empieza ya
         {isLoading ? (
           <span className="loading loading-spinner loading-xs"></span>
         ) : (
