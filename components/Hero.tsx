@@ -36,15 +36,19 @@ const Hero = () => {
         <TestimonialsAvatars priority={true} />
       </div>
       <div className="lg:w-full">
-        <Image
-          src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3540&q=80"
-          alt="Product Demo"
+        <video
           className="w-full"
-          priority={true}
-          width={500}
-          height={500}
-        />
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        >
+          <source src="/openart-video.mp4" type="video/mp4" />
+          Tu navegador no soporta videos HTML5.
+        </video>
       </div>
+
     </section>
   );
 };
