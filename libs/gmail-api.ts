@@ -170,59 +170,63 @@ export async function getCompletedSaleDetails(
       return null;
     }
 
-    // Extract item name - formato exacto: "El pedido de "nombre del artículo" ha finalizado"
-    let itemName = "Artículo desconocido";
+
     
     // Limpiar HTML y CSS del texto antes de procesar
+    // Limpiar HTML/CSS del texto antes de procesar
     let cleanText = text
-      // Eliminar etiquetas HTML
-      .replace(/<[^>]+>/g, " ")
-      // Eliminar estilos CSS inline (style="...")
-      .replace(/style\s*=\s*"[^"]*"/gi, " ")
-      // Eliminar propiedades CSS sueltas (line-height: 1.5;)
-      .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
-      // Eliminar llaves CSS
-      .replace(/[{}]/g, " ")
-      // Normalizar espacios
-      .replace(/\s+/g, " ")
-      .replace(/\n/g, " ")
-      .trim();
-    
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/gi, "&")
+    .replace(/style\s*=\s*"[^"]*"/gi, " ")
+    .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+    let itemName = "Artículo desconocido";
+
     const itemNamePatterns = [
-      // Patrón exacto del formato: "El pedido de "nombre" ha finalizado"
-      /El pedido de\s+"([^"]+)"\s+ha finalizado/i,
-      // Patrón sin "ha finalizado" al final
-      /El pedido de\s+"([^"]+)"/i,
-      // Variaciones sin mayúsculas
-      /el pedido de\s+"([^"]+)"/i,
-      // Con espacios o saltos de línea entre "de" y las comillas
-      /El pedido de\s*"([^"]+)"/i,
-      // Patrón más flexible que busca cualquier texto entre comillas después de "pedido de"
-      /pedido\s+de\s*"([^"]+)"/i,
+    // ✅ CASO REAL VINTED (sin comillas)
+    /El pedido de\s+(.+?)\s+ha finalizado(?:\s+correctamente)?/i,
+
+    // Variantes con comillas normales
+    /El pedido de\s+"([^"]+)"\s+ha finalizado/i,
+    /El pedido de\s+"([^"]+)"/i,
+
+    // Variantes con comillas tipográficas
+    /El pedido de\s+[“”"]([^“”"]+)[“”"]\s+ha finalizado/i,
+
+    // Fallback más flexible
+    /pedido\s+de\s+(.+?)(?:\.|\n|$)/i,
     ];
-    
+
     for (const pattern of itemNamePatterns) {
-      const match = cleanText.match(pattern);
-      if (match && match[1] && match[1].trim().length > 0) {
-        const extractedName = match[1].trim();
-        // Validar que no sea CSS, HTML o texto genérico
-        const isInvalid = 
-          extractedName.toLowerCase() === "artículo" ||
-          extractedName.toLowerCase() === "pedido" ||
-          extractedName.length <= 2 ||
-          extractedName.match(/^\d+$/) || // Solo números
-          extractedName.includes(":") || // Propiedades CSS
-          extractedName.includes(";") || // Propiedades CSS
-          extractedName.includes("{") || // CSS
-          extractedName.includes("}") || // CSS
-          extractedName.match(/^[a-z-]+:\s*[^;]+$/i); // Patrón CSS (propiedad: valor)
-        
-        if (!isInvalid) {
-          itemName = extractedName;
-          break;
-        }
-      }
+    const match = cleanText.match(pattern);
+    const candidate = (match?.[1] || "").trim();
+
+    if (!candidate) continue;
+
+    const isInvalid =
+      candidate.toLowerCase() === "artículo" ||
+      candidate.toLowerCase() === "pedido" ||
+      candidate.length <= 2 ||
+      /^\d+$/.test(candidate) ||
+      candidate.includes(":") ||
+      candidate.includes(";") ||
+      candidate.match(/^[a-z-]+:\s*[^;]+$/i);
+
+    if (!isInvalid) {
+      itemName = candidate;
+      break;
     }
+    }
+
     
     // Si aún no se encontró, buscar cualquier texto entre comillas después de "El pedido"
     if (itemName === "Artículo desconocido") {
@@ -527,12 +531,9 @@ export async function getExpenseDetails(
 
     return {
       messageId,
-      category,
+      type: category as "armario" | "destacado",
       amount: amounts.amount,
-      discount: amounts.discount,
-      totalAmount: amounts.total,
       description,
-      itemCount,
       date: new Date(date).toISOString(),
       snippet: message.snippet || text.substring(0, 200),
     };

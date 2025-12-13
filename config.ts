@@ -12,9 +12,9 @@ const config = {
   appName: "Vintflow",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app.",
+    "La plataforma de contabilidad creada exclusivamente para revendedores. Controla ventas, pedidos, gastos, inventario y beneficios reales sin Excel, sin líos y sin perder dinero.",
   // REQUIRED (no https://, not trailing slash at the end, just the naked domain)
-  domainName: "shipfa.st",
+  domainName: "vintflow.com",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (resend.supportEmail) otherwise customer support won't work.
     id: "",
@@ -33,18 +33,16 @@ const config = {
         //  REQUIRED - Name of the plan, displayed on the pricing page
         name: "Starter",
         // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Perfect for small projects",
+        description: "Perfecto para tu negocio de reventa",
         // The price you want to display, the one user will be charged on Stripe.
-        price: 99,
+        price: 19.95,
         // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
-        priceAnchor: 149,
+        priceAnchor: 24.95,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
+          { name: "Ventas y pedidos ilimitados",},
+          { name: "Registro de gastos" },
+          { name: "Impresión de etiquetas" },
+          { name: "Control de inventario" },
         ],
       },
       {
@@ -55,18 +53,16 @@ const config = {
         // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
         isFeatured: true,
         name: "Advanced",
-        description: "You need more power",
-        price: 149,
-        priceAnchor: 299,
+        description: "Soluciones avanzadas para tu negocio de reventa",
+        price: 29.95,
+        priceAnchor: 49.95,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
-          { name: "1 year of updates" },
-          { name: "24/7 support" },
+          { name: "Ventas y pedidos ilimitados",},
+          { name: "Registro de gastos" },
+          { name: "Impresión de etiquetas con impresora térmica" },
+          { name: "Control de inventario" },
+          { name: "Descarga de datos en Excel" },
+          { name: "Soporte técnico" },
         ],
       },
     ],
