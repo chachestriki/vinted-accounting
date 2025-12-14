@@ -2,6 +2,7 @@ import Image from "next/image";
 import TestimonialsAvatars from "./TestimonialsAvatars";
 import config from "@/config";
 import ButtonLead from "@/components/ButtonLead";
+import ButtonCheckout from "@/components/ButtonCheckout";
 import ButtonSignin from "@/components/ButtonSignin";
 
 const Hero = () => {
@@ -15,7 +16,7 @@ const Hero = () => {
         La plataforma de contabilidad creada exclusivamente para revendedores. Controla cada venta, gasto y beneficio de tu reventa en un solo lugar.
 
         </p>
-        <ButtonSignin/>
+        <ButtonCheckout priceId={config.stripe.plans[0].priceId} />
         
 
         <TestimonialsAvatars priority={true} />

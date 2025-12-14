@@ -6,10 +6,9 @@ import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
-// PUT - Editar venta manual
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -31,7 +30,7 @@ export async function PUT(
       );
     }
 
-    const saleId = params.id;
+    const saleId = (await params).id;
     const body = await req.json();
     const { itemName, purchasePrice, salePrice, saleDate, status } = body;
 
@@ -48,13 +47,26 @@ export async function PUT(
       );
     }
 
-    // Solo permitir editar ventas manuales
+    // Si la venta NO es manual, solo permitir editar el coste
     if (!sale.isManual) {
-      return NextResponse.json(
-        { error: "Solo se pueden editar ventas creadas manualmente" },
-        { status: 403 }
+      const allowedFields = ["purchasePrice"];
+      const receivedFields = Object.keys(body);
+
+      const invalidFields = receivedFields.filter(
+        (field) => !allowedFields.includes(field)
       );
+
+      if (invalidFields.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Las ventas importadas de Gmail solo permiten editar el coste",
+          },
+          { status: 403 }
+        );
+      }
     }
+
 
     // Validaciones
     if (itemName && itemName.trim() === "") {
