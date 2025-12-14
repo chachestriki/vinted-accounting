@@ -21,7 +21,7 @@
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.4.6",
     "form-data": "^4.0.0",
-    "gcp-metadata": "^8.1.2",
+    "gcp-metadata": "^5.3.0",
     "googleapis": "^166.0.0",
     "lucide-react": "^0.555.0",
     "mongodb": "^6.21.0",
