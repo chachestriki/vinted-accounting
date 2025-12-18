@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // GET - Obtener un bundle por ID
 export async function GET(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -32,7 +32,7 @@ export async function GET(
             );
         }
 
-        const bundleId = (await params).id;
+        const { id: bundleId } = await context.params;
         const bundle = await Bundle.findOne({
             _id: bundleId,
             userId: user._id,
@@ -66,7 +66,7 @@ export async function GET(
 // PUT - Actualizar bundle
 export async function PUT(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -88,7 +88,7 @@ export async function PUT(
             );
         }
 
-        const bundleId = (await params).id;
+        const { id: bundleId } = await context.params;
         const body = await req.json();
         const { name, provider, price, quantity } = body;
 
@@ -169,7 +169,7 @@ export async function PUT(
 // DELETE - Eliminar bundle
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -191,7 +191,7 @@ export async function DELETE(
             );
         }
 
-        const bundleId = (await params).id;
+        const { id: bundleId } = await context.params;
         const bundle = await Bundle.findOne({
             _id: bundleId,
             userId: user._id,

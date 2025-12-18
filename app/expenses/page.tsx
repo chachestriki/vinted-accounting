@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Calendar,
   Filter,
@@ -48,7 +48,7 @@ export default function ExpensesPage() {
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Add expense modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingExpense, setAddingExpense] = useState(false);
@@ -58,7 +58,7 @@ export default function ExpensesPage() {
     amount: "",
     expenseDate: new Date().toISOString().split("T")[0],
   });
-  
+
   // Edit expense modal
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [editForm, setEditForm] = useState({
@@ -70,22 +70,18 @@ export default function ExpensesPage() {
   const [updatingExpense, setUpdatingExpense] = useState(false);
   const [deletingExpense, setDeletingExpense] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchExpensesData();
-  }, [selectedType, selectedDateRange, customStartDate, customEndDate]);
-
-  const fetchExpensesData = async () => {
+  const fetchExpensesData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       let url = "/expenses";
       const params: string[] = [];
-      
+
       if (selectedType !== "all") {
         params.push(`type=${selectedType}`);
       }
-      
+
       if (selectedDateRange === "custom" && (customStartDate || customEndDate)) {
         if (customStartDate) {
           params.push(`startDate=${new Date(customStartDate).toISOString()}`);
@@ -104,11 +100,11 @@ export default function ExpensesPage() {
           params.push(`endDate=${end.toISOString()}`);
         }
       }
-      
+
       if (params.length > 0) {
         url += `?${params.join("&")}`;
       }
-      
+
       const response = await apiClient.get(url);
       setExpensesData(response as unknown as ExpensesData);
       setCurrentPage(1); // Reset to first page when filters change
@@ -120,23 +116,27 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedType, selectedDateRange, customStartDate, customEndDate]);
+
+  useEffect(() => {
+    fetchExpensesData();
+  }, [fetchExpensesData]);
 
   const addExpense = async () => {
     try {
       setAddingExpense(true);
       setError(null);
-      
+
       if (!newExpenseForm.description.trim()) {
         setError("La descripción es requerida");
         return;
       }
-      
+
       if (!newExpenseForm.amount || parseFloat(newExpenseForm.amount) <= 0) {
         setError("El monto debe ser mayor a 0");
         return;
       }
-      
+
       await apiClient.post("/expenses/manual", newExpenseForm);
       await fetchExpensesData();
       setShowAddModal(false);
@@ -155,7 +155,7 @@ export default function ExpensesPage() {
       setAddingExpense(false);
     }
   };
-  
+
   const openEditModal = (expense: Expense) => {
     setEditingExpense(expense);
     setEditForm({
@@ -165,24 +165,24 @@ export default function ExpensesPage() {
       expenseDate: new Date(expense.expenseDate).toISOString().split("T")[0],
     });
   };
-  
+
   const updateExpense = async () => {
     if (!editingExpense) return;
-    
+
     try {
       setUpdatingExpense(true);
       setError(null);
-      
+
       if (!editForm.description.trim()) {
         setError("La descripción es requerida");
         return;
       }
-      
+
       if (!editForm.amount || parseFloat(editForm.amount) <= 0) {
         setError("El monto debe ser mayor a 0");
         return;
       }
-      
+
       await apiClient.put(`/expenses/${editingExpense._id}`, editForm);
       await fetchExpensesData();
       setEditingExpense(null);
@@ -195,16 +195,16 @@ export default function ExpensesPage() {
       setUpdatingExpense(false);
     }
   };
-  
+
   const deleteExpense = async (expenseId: string) => {
     if (!confirm("¿Estás seguro de que quieres eliminar este gasto?")) {
       return;
     }
-    
+
     try {
       setDeletingExpense(expenseId);
       setError(null);
-      
+
       await apiClient.delete(`/expenses/${expenseId}`);
       await fetchExpensesData();
     } catch (err: any) {
@@ -257,7 +257,7 @@ export default function ExpensesPage() {
   const handleDateRangeChange = (range: DateRange) => {
     setSelectedDateRange(range);
     setShowDatePicker(range === "custom");
-    
+
     if (range !== "custom") {
       setCustomStartDate("");
       setCustomEndDate("");
@@ -383,31 +383,28 @@ export default function ExpensesPage() {
             <span className="text-sm font-medium text-gray-700">Tipo:</span>
             <button
               onClick={() => setSelectedType("all")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedType === "all"
-                  ? "bg-gray-900 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedType === "all"
+                ? "bg-gray-900 text-white"
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                }`}
             >
               Todos
             </button>
             <button
               onClick={() => setSelectedType("armario")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedType === "armario"
-                  ? "bg-gray-900 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedType === "armario"
+                ? "bg-gray-900 text-white"
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                }`}
             >
               Armario
             </button>
             <button
               onClick={() => setSelectedType("destacado")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedType === "destacado"
-                  ? "bg-gray-900 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedType === "destacado"
+                ? "bg-gray-900 text-white"
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                }`}
             >
               Destacados
             </button>
@@ -428,7 +425,7 @@ export default function ExpensesPage() {
                 <Calendar className="w-4 h-4 text-gray-500" />
                 <span className="font-medium text-gray-900">Seleccionar fechas personalizadas</span>
               </div>
-              
+
               <div className="flex flex-wrap items-end gap-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Desde</label>
@@ -546,11 +543,10 @@ export default function ExpensesPage() {
                             </td>
                             <td className="py-3 px-4">
                               <span
-                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                                  expense.type === "armario"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-purple-100 text-purple-800"
-                                }`}
+                                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${expense.type === "armario"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-purple-100 text-purple-800"
+                                  }`}
                               >
                                 {expense.type === "armario" ? "Armario" : "Destacado"}
                               </span>
@@ -639,7 +635,7 @@ export default function ExpensesPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -656,7 +652,7 @@ export default function ExpensesPage() {
                     <option value="destacado">Destacado</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Descripción
@@ -671,7 +667,7 @@ export default function ExpensesPage() {
                     placeholder="Ej: Armario en escaparate (7 días)"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Monto (€)
@@ -688,7 +684,7 @@ export default function ExpensesPage() {
                     placeholder="0.00"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha
@@ -703,7 +699,7 @@ export default function ExpensesPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
                 <button
                   onClick={() => setShowAddModal(false)}
@@ -736,7 +732,7 @@ export default function ExpensesPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -753,7 +749,7 @@ export default function ExpensesPage() {
                     <option value="destacado">Destacado</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Descripción
@@ -767,7 +763,7 @@ export default function ExpensesPage() {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Monto (€)
@@ -783,7 +779,7 @@ export default function ExpensesPage() {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha
@@ -798,7 +794,7 @@ export default function ExpensesPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
                 <button
                   onClick={() => setEditingExpense(null)}
@@ -819,7 +815,7 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      
+
     </div>
   );
 }

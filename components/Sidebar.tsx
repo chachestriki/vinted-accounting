@@ -4,6 +4,7 @@ import React from "react";
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -65,8 +66,8 @@ const Sidebar = () => {
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${active
-                  ? "bg-base-300 font-semibold text-base-content"
-                  : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+                ? "bg-base-300 font-semibold text-base-content"
+                : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
                 }`}
             >
               <Icon className="w-5 h-5" />
@@ -81,8 +82,8 @@ const Sidebar = () => {
         <Link
           href="/settings"
           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${pathname === "/settings"
-              ? "bg-base-300 font-semibold text-base-content"
-              : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+            ? "bg-base-300 font-semibold text-base-content"
+            : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
             }`}
         >
           <Settings className="w-5 h-5" />
@@ -98,11 +99,12 @@ const Sidebar = () => {
               <Popover.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-base-200 transition-colors duration-200">
                 <div className="w-8 h-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
                   {session?.user?.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
                       alt={session.user.name || "User"}
-                      className="w-8 h-8 rounded-full"
-                      referrerPolicy="no-referrer"
+                      width={32}
+                      height={32}
+                      className="rounded-full"
                     />
                   ) : (
                     <span className="text-sm font-medium">

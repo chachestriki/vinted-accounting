@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // PUT - Editar gasto manual
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -31,7 +31,7 @@ export async function PUT(
       );
     }
 
-    const expenseId = params.id;
+    const { id: expenseId } = await context.params;
     const body = await req.json();
     const { type, description, amount, expenseDate } = body;
 
@@ -108,7 +108,7 @@ export async function PUT(
 // DELETE - Eliminar gasto manual
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -130,7 +130,7 @@ export async function DELETE(
       );
     }
 
-    const expenseId = params.id;
+    const { id: expenseId } = await context.params;
 
     // Buscar el gasto
     const expense = await Expense.findOne({

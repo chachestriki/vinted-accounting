@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<any> }
 ) {
   try {
     const session = await auth();
@@ -30,7 +30,7 @@ export async function PUT(
       );
     }
 
-    const saleId = (await params).id;
+    const { id: saleId } = await context.params;
     const body = await req.json();
     const { itemName, purchasePrice, salePrice, saleDate, status } = body;
 
@@ -138,7 +138,7 @@ export async function PUT(
 // DELETE - Eliminar venta manual
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<any> }
 ) {
   try {
     const session = await auth();
@@ -160,7 +160,7 @@ export async function DELETE(
       );
     }
 
-    const saleId = params.id;
+    const { id: saleId } = await context.params;
 
     // Buscar la venta
     const sale = await Sale.findOne({
