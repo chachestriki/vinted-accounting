@@ -70,7 +70,7 @@ export function parseVintedAmount(text: string): number | null {
   // Fallback: buscar cualquier monto en formato europeo
   const fallbackRegex = /([\d]{1,3}(?:\.[\d]{3})*(?:,[\d]{2})?|[\d]+(?:,[\d]{2})?)\s*(€|EUR)/g;
   const matches = [...text.matchAll(fallbackRegex)];
-  
+
   if (matches.length > 0) {
     const lastMatch = matches[matches.length - 1];
     const amountStr = lastMatch[1];
@@ -89,7 +89,7 @@ export function parseVintedAmount(text: string): number | null {
  */
 export function parseShippingCarrier(text: string): string {
   const textLower = text.toLowerCase();
-  
+
   if (textLower.includes("correos") || textLower.includes("correos domicilio")) {
     return "correos";
   }
@@ -102,7 +102,7 @@ export function parseShippingCarrier(text: string): string {
   if (textLower.includes("vinted go")) {
     return "vintedgo";
   }
-  
+
   return "unknown";
 }
 
@@ -113,11 +113,11 @@ export function parseTrackingNumber(text: string): string {
   // Buscar N.º de seguimiento: seguido del número
   const trackingRegex = /N\.?\s*º?\s*de seguimiento:\s*([A-Za-z0-9]+)/i;
   const match = text.match(trackingRegex);
-  
+
   if (match) {
     return match[1].trim();
   }
-  
+
   return "";
 }
 
@@ -125,24 +125,33 @@ export function parseTrackingNumber(text: string): string {
  * Parse shipping deadline from email text
  */
 export function parseShippingDeadline(text: string): string {
-  // Fecha límite de envío: DD/MM/YYYY, HH:MM
-  const deadlineRegex =
-    /Fecha l[ií]mite de env[ií]o:\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})\s*,?\s*(\d{1,2})\s*:\s*(\d{2})/i;
+  const patterns = [
+    // 1. "Fecha límite de envío: DD/MM/YYYY, HH:MM"
+    /Fecha l[ií]mite de env[ií]o:\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})[,\s]+(\d{1,2})[:\.](\d{2})/i,
 
-  const match = text.match(deadlineRegex);
+    // 2. "IMPORTANTE: Envía tu paquete antes del DD/MM/YYYY, HH:MM"
+    /antes del\s+(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})[,\s]+(\d{1,2})[:\.](\d{2})/i,
 
-  if (match) {
-    const [, day, month, year, hour, minute] = match;
+    // 3. "Utilizar antes del DD/MM/YYYY, HH:MM" (Común en el asunto)
+    /Utilizar antes del\s*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})[,\s]+(\d{1,2})[:\.](\d{2})/i
+  ];
 
-    const date = new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      Number(hour),
-      Number(minute)
-    );
+  for (const regex of patterns) {
+    const match = text.match(regex);
+    if (match) {
+      const [, day, month, year, hour, minute] = match;
+      const date = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute)
+      );
 
-    return date.toISOString();
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
   }
 
   // Fallback sin hora
@@ -170,10 +179,10 @@ export function parseShippingDeadline(text: string): string {
 /**
  * Filter emails from the last N days
  */
-export function filterEmailsByDate(
-  emails: Array<{ date: string }>,
+export function filterEmailsByDate<T extends { date: string }>(
+  emails: T[],
   days: number = 7
-): Array<{ date: string }> {
+): T[] {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -186,11 +195,11 @@ export function filterEmailsByDate(
 /**
  * Filter emails by date range
  */
-export function filterEmailsByDateRange(
-  emails: Array<{ date: string }>,
+export function filterEmailsByDateRange<T extends { date: string }>(
+  emails: T[],
   startDate: Date,
   endDate: Date
-): Array<{ date: string }> {
+): T[] {
   return emails.filter((email) => {
     const emailDate = new Date(email.date);
     return emailDate >= startDate && emailDate <= endDate;
@@ -325,13 +334,13 @@ export function getStatusDisplayName(status: string): string {
  */
 export function isTrulyPending(saleDate: Date, shippingDeadline: Date | null): boolean {
   const now = new Date();
-  
+
   // Si no hay fecha de vencimiento, considerar pendiente si es de los últimos 7 días
   if (!shippingDeadline) {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return saleDate >= sevenDaysAgo;
   }
-  
+
   // Si la fecha actual está entre la fecha de venta y la fecha de vencimiento
   return now >= saleDate && now <= shippingDeadline;
 }
@@ -342,14 +351,14 @@ export function isTrulyPending(saleDate: Date, shippingDeadline: Date | null): b
 export function parseExpenseCategory(text: string, subject: string): "destacado" | "armario" | "otros" {
   const textLower = text.toLowerCase();
   const subjectLower = subject.toLowerCase();
-  
+
   if (textLower.includes("destacado") || subjectLower.includes("destacado")) {
     return "destacado";
   }
   if (textLower.includes("armario") || subjectLower.includes("armario")) {
     return "armario";
   }
-  
+
   return "otros";
 }
 
@@ -360,45 +369,45 @@ export function parseExpenseCategory(text: string, subject: string): "destacado"
 export function parseExpenseAmount(text: string): { amount: number; discount: number; total: number } | null {
   let amount = 0;
   let discount = 0;
-  
+
   // Buscar "Total" o similar
   const totalRegex = /(?:Total|Saldo Vinted)[:\s]*([\d.,]+)\s*(€|EUR)/i;
   const totalMatch = text.match(totalRegex);
-  
+
   if (totalMatch) {
     const amountStr = totalMatch[1];
     const normalized = amountStr.replace(/\./g, "").replace(",", ".");
     amount = parseFloat(normalized);
   }
-  
+
   // Buscar descuento
   const discountRegex = /Descuento[:\s]*-?\s*([\d.,]+)\s*(€|EUR)/i;
   const discountMatch = text.match(discountRegex);
-  
+
   if (discountMatch) {
     const discountStr = discountMatch[1];
     const normalized = discountStr.replace(/\./g, "").replace(",", ".");
     discount = parseFloat(normalized);
   }
-  
+
   // Si no encontramos total, buscar cualquier monto
   if (amount === 0) {
     const amountRegex = /([\d]{1,3}(?:,[\d]{2})?)\s*(€|EUR)/;
     const amountMatch = text.match(amountRegex);
-    
+
     if (amountMatch) {
       const amountStr = amountMatch[1];
       const normalized = amountStr.replace(",", ".");
       amount = parseFloat(normalized);
     }
   }
-  
+
   if (amount === 0) {
     return null;
   }
-  
+
   const total = amount - discount;
-  
+
   return { amount, discount, total };
 }
 
@@ -411,13 +420,13 @@ export function parseItemCount(text: string): number {
     /(\d+)\s*art[ií]culos?/i,
     /destacado.*?(\d+)\s*art/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match && match[1]) {
       return parseInt(match[1]);
     }
   }
-  
+
   return 0;
 }

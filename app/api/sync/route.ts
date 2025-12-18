@@ -22,6 +22,17 @@ export const maxDuration = 180; // 3 minutos para sincronización completa
 // POST - Sincronizar ventas desde Gmail a MongoDB
 export async function POST(req: NextRequest) {
   console.log("🚀 Iniciando sincronización...");
+
+  // Parse request body for fullSync option
+  let forceFullSync = false;
+  try {
+    const body = await req.json();
+    forceFullSync = body.fullSync === true;
+    if (forceFullSync) console.log("⚠️ Forzando sincronización completa (Full Sync)");
+  } catch (e) {
+    // Body might be empty, ignore
+  }
+
   const lastSync = new Date();
 
   try {
@@ -75,7 +86,13 @@ export async function POST(req: NextRequest) {
     const now = new Date();
 
     // ========== SYNC SALES ==========
-    const lastSyncDate = user.lastSyncAt ? new Date(user.lastSyncAt) : undefined;
+    let lastSyncDate = user.lastSyncAt ? new Date(user.lastSyncAt) : undefined;
+
+    if (forceFullSync) {
+      lastSyncDate = undefined;
+      console.log("🔄 Ignorando fecha de última sincronización por Full Sync");
+    }
+
     if (lastSyncDate) {
       console.log(`🕒 Sincronizando desde: ${lastSyncDate.toLocaleString()}`);
     } else {

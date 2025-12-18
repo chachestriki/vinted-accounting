@@ -162,11 +162,26 @@ export default function SalesPage() {
   const linkSaleToBundle = async (saleId: string, bundleId: string | null) => {
     try {
       setLinkingBundle(saleId);
-      await apiClient.post("/sales/link-bundle", {
+      const res = await apiClient.post("/sales/link-bundle", {
         saleId,
         bundleId: bundleId || null,
       });
-      await fetchSalesData();
+
+      const updatedSale = (res as any).sale;
+
+      // Update local state optimistically with the returned sale (which has updated purchasePrice)
+      if (updatedSale) {
+        setSalesData(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            sales: prev.sales.map(s =>
+              s._id === saleId ? { ...s, ...updatedSale, _id: s._id } : s
+            )
+          };
+        });
+      }
+
       await fetchBundles();
     } catch (err: any) {
       console.error("Error linking sale to bundle:", err);

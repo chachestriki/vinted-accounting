@@ -320,7 +320,7 @@ export async function getPendingSaleDetails(
     const trackingNumber = parseTrackingNumber(text);
 
     // Extract shipping deadline
-    const shippingDeadline = parseShippingDeadline(text);
+    const shippingDeadline = parseShippingDeadline(subject + " " + text);
 
     // Check for PDF attachment
     let hasAttachment = false;

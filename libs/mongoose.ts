@@ -8,7 +8,12 @@ const connectMongo = async () => {
     );
   }
   return mongoose
-    .connect(process.env.MONGODB_URI)
+    .connect(process.env.MONGODB_URI, {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      family: 4
+    })
     .catch((e) => console.error("Mongoose Client Error: " + e.message));
 };
 
