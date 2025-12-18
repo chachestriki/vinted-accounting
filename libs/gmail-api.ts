@@ -1,10 +1,10 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
-import { 
-  parseVintedAmount, 
-  parseShippingCarrier, 
-  parseTrackingNumber, 
-  parseShippingDeadline, 
+import {
+  parseVintedAmount,
+  parseShippingCarrier,
+  parseTrackingNumber,
+  parseShippingDeadline,
   parseTransactionId,
   parseExpenseCategory,
   parseExpenseAmount,
@@ -51,18 +51,25 @@ export async function refreshAccessToken(
  */
 export async function searchGmailEmails(
   gmail: any,
-  query: string
+  query: string,
+  afterDate?: Date
 ): Promise<string[]> {
   try {
     const allMessageIds: string[] = [];
     let nextPageToken: string | undefined = undefined;
 
-    console.log(`🔍 Buscando correos: "${query}"`);
+    let finalQuery = query;
+    if (afterDate) {
+      const seconds = Math.floor(afterDate.getTime() / 1000);
+      finalQuery += ` after:${seconds}`;
+    }
+
+    console.log(`🔍 Buscando correos: "${finalQuery}"`);
 
     do {
       const response = await gmail.users.messages.list({
         userId: "me",
-        q: query,
+        q: finalQuery,
         maxResults: 500,
         pageToken: nextPageToken,
       });
@@ -89,20 +96,22 @@ export async function searchGmailEmails(
 /**
  * Search for Vinted completed sales (transfers)
  */
-export async function searchVintedCompletedSales(gmail: any): Promise<string[]> {
+export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es "Transferencia a tu saldo Vinted"'
+    'from:no-reply@vinted.es "Transferencia a tu saldo Vinted"',
+    afterDate
   );
 }
 
 /**
  * Search for Vinted pending sales (shipping labels)
  */
-export async function searchVintedPendingSales(gmail: any): Promise<string[]> {
+export async function searchVintedPendingSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es "Etiqueta de envío para"'
+    'from:no-reply@vinted.es "Etiqueta de envío para"',
+    afterDate
   );
 }
 
@@ -171,76 +180,76 @@ export async function getCompletedSaleDetails(
     }
 
 
-    
+
     // Limpiar HTML y CSS del texto antes de procesar
     // Limpiar HTML/CSS del texto antes de procesar
     let cleanText = text
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#34;/g, '"')
-    .replace(/&apos;/gi, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/gi, "&")
-    .replace(/style\s*=\s*"[^"]*"/gi, " ")
-    .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#34;/g, '"')
+      .replace(/&apos;/gi, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/gi, "&")
+      .replace(/style\s*=\s*"[^"]*"/gi, " ")
+      .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
     let itemName = "Artículo desconocido";
 
     const itemNamePatterns = [
-    // ✅ CASO REAL VINTED (sin comillas)
-    /El pedido de\s+(.+?)\s+ha finalizado(?:\s+correctamente)?/i,
+      // ✅ CASO REAL VINTED (sin comillas)
+      /El pedido de\s+(.+?)\s+ha finalizado(?:\s+correctamente)?/i,
 
-    // Variantes con comillas normales
-    /El pedido de\s+"([^"]+)"\s+ha finalizado/i,
-    /El pedido de\s+"([^"]+)"/i,
+      // Variantes con comillas normales
+      /El pedido de\s+"([^"]+)"\s+ha finalizado/i,
+      /El pedido de\s+"([^"]+)"/i,
 
-    // Variantes con comillas tipográficas
-    /El pedido de\s+[“”"]([^“”"]+)[“”"]\s+ha finalizado/i,
+      // Variantes con comillas tipográficas
+      /El pedido de\s+[“”"]([^“”"]+)[“”"]\s+ha finalizado/i,
 
-    // Fallback más flexible
-    /pedido\s+de\s+(.+?)(?:\.|\n|$)/i,
+      // Fallback más flexible
+      /pedido\s+de\s+(.+?)(?:\.|\n|$)/i,
     ];
 
     for (const pattern of itemNamePatterns) {
-    const match = cleanText.match(pattern);
-    const candidate = (match?.[1] || "").trim();
+      const match = cleanText.match(pattern);
+      const candidate = (match?.[1] || "").trim();
 
-    if (!candidate) continue;
+      if (!candidate) continue;
 
-    const isInvalid =
-      candidate.toLowerCase() === "artículo" ||
-      candidate.toLowerCase() === "pedido" ||
-      candidate.length <= 2 ||
-      /^\d+$/.test(candidate) ||
-      candidate.includes(":") ||
-      candidate.includes(";") ||
-      candidate.match(/^[a-z-]+:\s*[^;]+$/i);
+      const isInvalid =
+        candidate.toLowerCase() === "artículo" ||
+        candidate.toLowerCase() === "pedido" ||
+        candidate.length <= 2 ||
+        /^\d+$/.test(candidate) ||
+        candidate.includes(":") ||
+        candidate.includes(";") ||
+        candidate.match(/^[a-z-]+:\s*[^;]+$/i);
 
-    if (!isInvalid) {
-      itemName = candidate;
-      break;
+      if (!isInvalid) {
+        itemName = candidate;
+        break;
+      }
     }
-    }
 
-    
+
     // Si aún no se encontró, buscar cualquier texto entre comillas después de "El pedido"
     if (itemName === "Artículo desconocido") {
       const fallbackMatch = cleanText.match(/El pedido[^"]*"([^"]{3,})"/i);
       if (fallbackMatch && fallbackMatch[1]) {
         const fallbackName = fallbackMatch[1].trim();
-        const isInvalid = 
-          fallbackName.length <= 2 || 
-          fallbackName.toLowerCase() === "artículo" || 
+        const isInvalid =
+          fallbackName.length <= 2 ||
+          fallbackName.toLowerCase() === "artículo" ||
           fallbackName.toLowerCase() === "pedido" ||
           fallbackName.includes(":") ||
           fallbackName.includes(";") ||
           fallbackName.match(/^[a-z-]+:\s*[^;]+$/i);
-        
+
         if (!isInvalid) {
           itemName = fallbackName;
         }
@@ -316,7 +325,7 @@ export async function getPendingSaleDetails(
     // Check for PDF attachment
     let hasAttachment = false;
     let attachmentId: string | undefined;
-    
+
     const findAttachment = (parts: any[]): void => {
       for (const part of parts) {
         if (part.filename && part.filename.toLowerCase().endsWith('.pdf')) {
@@ -452,12 +461,12 @@ export async function processEmailsBatch<T>(
     const batch = messageIds.slice(i, i + batchSize);
     const batchPromises = batch.map((id) => processor(gmail, id));
     const batchResults = await Promise.all(batchPromises);
-    
+
     const validResults = batchResults.filter((r) => r !== null) as T[];
     results.push(...validResults);
 
     const processed = Math.min(i + batchSize, messageIds.length);
-    console.log(`📊 Progreso: ${processed}/${messageIds.length} (${Math.round(processed/messageIds.length * 100)}%)`);
+    console.log(`📊 Progreso: ${processed}/${messageIds.length} (${Math.round(processed / messageIds.length * 100)}%)`);
 
     if (i + batchSize < messageIds.length) {
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -470,10 +479,11 @@ export async function processEmailsBatch<T>(
 /**
  * Search for Vinted expenses (Destacado, Armario, etc.)
  */
-export async function searchVintedExpenses(gmail: any): Promise<string[]> {
+export async function searchVintedExpenses(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es ("Tu factura" OR "destacado" OR "armario")'
+    'from:no-reply@vinted.es ("Tu factura" OR "destacado" OR "armario")',
+    afterDate
   );
 }
 
@@ -519,7 +529,7 @@ export async function getExpenseDetails(
     // Build description
     let description = "";
     if (category === "destacado") {
-      description = itemCount > 0 
+      description = itemCount > 0
         ? `Destacado internacional de 3 días (${itemCount} artículos)`
         : "Destacado internacional de 3 días";
     } else if (category === "armario") {

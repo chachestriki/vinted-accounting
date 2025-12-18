@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Last time the user synced their Gmail data
+    lastSyncAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

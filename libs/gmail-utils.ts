@@ -125,43 +125,47 @@ export function parseTrackingNumber(text: string): string {
  * Parse shipping deadline from email text
  */
 export function parseShippingDeadline(text: string): string {
-  // Buscar Fecha límite de envío: DD/MM/YYYY HH:MM
-  // Puede tener espacios, $, etc.
-  const deadlineRegex = /Fecha l[ií]mite de env[ií]o:\s*\$?\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})\s*\$?\s*(\d{1,2})\s*:\s*(\d{2})/i;
+  // Fecha límite de envío: DD/MM/YYYY, HH:MM
+  const deadlineRegex =
+    /Fecha l[ií]mite de env[ií]o:\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})\s*,?\s*(\d{1,2})\s*:\s*(\d{2})/i;
+
   const match = text.match(deadlineRegex);
-  
+
   if (match) {
     const [, day, month, year, hour, minute] = match;
-    try {
-      const date = new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        parseInt(hour),
-        parseInt(minute)
-      );
-      return date.toISOString();
-    } catch {
-      return "";
-    }
+
+    const date = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute)
+    );
+
+    return date.toISOString();
   }
-  
-  // Formato alternativo sin hora
-  const altRegex = /Fecha l[ií]mite[^:]*:\s*\$?\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/i;
+
+  // Fallback sin hora
+  const altRegex =
+    /Fecha l[ií]mite[^:]*:\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/i;
+
   const altMatch = text.match(altRegex);
-  
+
   if (altMatch) {
     const [, day, month, year] = altMatch;
-    try {
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59);
-      return date.toISOString();
-    } catch {
-      return "";
-    }
+    const date = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      23,
+      59
+    );
+    return date.toISOString();
   }
-  
+
   return "";
 }
+
 
 /**
  * Filter emails from the last N days

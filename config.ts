@@ -22,24 +22,18 @@ const config = {
     onlyShowOnRoutes: ["/"],
   },
   stripe: {
-    // Create multiple plans in your Stripe dashboard, then add them here. You can add as many plans as you want, just make sure to add the priceId
     plans: [
       {
-        // REQUIRED — we use this to find the plan in the webhook (for instance if you want to update the user's credits based on the plan)
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
-            : "price_456",
-        //  REQUIRED - Name of the plan, displayed on the pricing page
+            ? "price_1SevlPERxtxjzj6apzk66kd3"  // Development priceId
+            : "price_456",                    // Production priceId
         name: "Starter",
-        // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
         description: "Perfecto para tu negocio de reventa",
-        // The price you want to display, the one user will be charged on Stripe.
         price: 19.95,
-        // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
         priceAnchor: 24.95,
         features: [
-          { name: "Ventas y pedidos ilimitados",},
+          { name: "Ventas y pedidos ilimitados" },
           { name: "Registro de gastos" },
           { name: "Impresión de etiquetas" },
           { name: "Control de inventario" },
@@ -48,16 +42,15 @@ const config = {
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1O5KtcAxyNprDp7iftKnrrpw"
-            : "price_456",
-        // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
+            ? "price_1SevlxERxtxjzj6aMyZAZvys"  // Development priceId
+            : "price_456",                    // Production priceId
         isFeatured: true,
         name: "Advanced",
         description: "Para revendedores que quieren escalar con control total",
         price: 29.95,
         priceAnchor: 49.95,
         features: [
-          { name: "Ventas y pedidos ilimitados",},
+          { name: "Ventas y pedidos ilimitados" },
           { name: "Registro de gastos" },
           { name: "Impresión de etiquetas con impresora térmica" },
           { name: "Control de inventario" },
@@ -67,6 +60,7 @@ const config = {
       },
     ],
   },
+  
   aws: {
     // If you use AWS S3/Cloudfront, put values in here
     bucket: "bucket-name",

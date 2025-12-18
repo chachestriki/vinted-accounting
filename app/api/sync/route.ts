@@ -75,12 +75,19 @@ export async function POST(req: NextRequest) {
     const now = new Date();
 
     // ========== SYNC SALES ==========
+    const lastSyncDate = user.lastSyncAt ? new Date(user.lastSyncAt) : undefined;
+    if (lastSyncDate) {
+      console.log(`🕒 Sincronizando desde: ${lastSyncDate.toLocaleString()}`);
+    } else {
+      console.log("🕒 Primera sincronización (sin fecha previa)");
+    }
+
     console.log("🔍 Buscando ventas pendientes (etiquetas de envío)...");
-    const pendingMessageIds = await searchVintedPendingSales(gmail);
+    const pendingMessageIds = await searchVintedPendingSales(gmail, lastSyncDate);
     console.log(`📧 Ventas pendientes encontradas: ${pendingMessageIds.length}`);
-    
+
     console.log("🔍 Buscando ventas completadas (transferencias)...");
-    const completedMessageIds = await searchVintedCompletedSales(gmail);
+    const completedMessageIds = await searchVintedCompletedSales(gmail, lastSyncDate);
     console.log(`📧 Ventas completadas encontradas: ${completedMessageIds.length}`);
 
     console.log("📦 Procesando ventas pendientes...");
@@ -126,10 +133,10 @@ export async function POST(req: NextRequest) {
 
         const completed = pending.transactionId ? completedMap.get(pending.transactionId) : null;
         const isCompleted = !!completed;
-        
+
         let status: "pending" | "completed" = "pending";
         let completedDate: Date | undefined;
-        
+
         if (isCompleted) {
           status = "completed";
           completedDate = new Date(completed!.date);
@@ -160,7 +167,7 @@ export async function POST(req: NextRequest) {
         };
 
         console.log(`💾 Guardando venta: ${pending.messageId} - ${pending.itemName}`);
-        
+
         try {
           const result = await Sale.findOneAndUpdate(
             { emailId: pending.messageId }, // Buscar por emailId
@@ -231,7 +238,7 @@ export async function POST(req: NextRequest) {
         };
 
         console.log(`💾 Guardando venta completada: ${completed.messageId} - ${completed.itemName}`);
-        
+
         try {
           const result = await Sale.findOneAndUpdate(
             { emailId: completed.messageId }, // Buscar por emailId
@@ -290,7 +297,7 @@ export async function POST(req: NextRequest) {
 
     // ========== SYNC EXPENSES (Armario y Destacado) ==========
     console.log("🔍 Buscando gastos (armario y destacado)...");
-    const expenseMessageIds = await searchVintedExpenses(gmail);
+    const expenseMessageIds = await searchVintedExpenses(gmail, lastSyncDate);
     console.log(`📧 Gastos encontrados: ${expenseMessageIds.length}`);
 
     console.log("💳 Procesando gastos...");
@@ -326,7 +333,7 @@ export async function POST(req: NextRequest) {
         };
 
         console.log(`💾 Guardando gasto: ${expense.messageId} - ${expense.type} - ${expense.amount}€`);
-        
+
         try {
           const result = await Expense.findOneAndUpdate(
             { emailId: expense.messageId }, // Buscar por emailId
@@ -374,6 +381,10 @@ export async function POST(req: NextRequest) {
     console.log(`   💾 Ventas: ${newSales} nuevas, ${updatedSales} actualizadas, ${expiredSales} vencidas, ${salesErrors} errores`);
     console.log(`   📧 Gastos: ${expenseMessageIds.length} correos encontrados`);
     console.log(`   💾 Gastos: ${newExpenses} nuevos, ${updatedExpenses} actualizados, ${expensesErrors} errores`);
+
+    // Update user's lastSyncAt
+    await User.findByIdAndUpdate(user._id, { lastSyncAt: lastSync });
+    console.log(`   🕐 lastSyncAt actualizado: ${lastSync.toISOString()}`);
 
     return NextResponse.json({
       success: true,

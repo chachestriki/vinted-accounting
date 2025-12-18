@@ -30,7 +30,7 @@ export const createCheckout = async ({
 }: CreateCheckoutParams): Promise<string> => {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-08-16", // TODO: update this when Stripe updates their API
+      apiVersion: "2023-08-16", // Stripe API version
       typescript: true,
     });
 
@@ -43,13 +43,12 @@ export const createCheckout = async ({
       tax_id_collection?: { enabled: boolean };
     } = {};
 
+    // Handle user creation and customer management
     if (user?.customerId) {
       extraParams.customer = user.customerId;
     } else {
       if (mode === "payment") {
         extraParams.customer_creation = "always";
-        // The option below costs 0.4% (up to $2) per invoice. Alternatively, you can use https://zenvoice.io/ to create unlimited invoices automatically.
-        // extraParams.invoice_creation = { enabled: true };
         extraParams.payment_intent_data = { setup_future_usage: "on_session" };
       }
       if (user?.email) {
@@ -58,13 +57,21 @@ export const createCheckout = async ({
       extraParams.tax_id_collection = { enabled: true };
     }
 
+    // Here, we need to dynamically set the mode based on the priceId
+    // Fetch the price object from Stripe to check if it's recurring or one-time
+    const price = await stripe.prices.retrieve(priceId);
+
+    // Determine the mode based on whether the price is recurring or one-time
+    const sessionMode = price.recurring ? "subscription" : "payment"; // Recurring prices are for subscriptions
+
+    // Create checkout session with the correct mode
     const stripeSession = await stripe.checkout.sessions.create({
-      mode,
+      mode: sessionMode,  // Set 'subscription' for recurring or 'payment' for one-time
       allow_promotion_codes: true,
       client_reference_id: clientReferenceId,
       line_items: [
         {
-          price: priceId,
+          price: priceId,  // Pass the correct priceId here
           quantity: 1,
         },
       ],
@@ -86,6 +93,8 @@ export const createCheckout = async ({
     return null;
   }
 };
+
+
 
 // This is used to create Customer Portal sessions, so users can manage their subscriptions (payment methods, cancel, etc..)
 export const createCustomerPortal = async ({

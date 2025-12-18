@@ -15,7 +15,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  Trash2
+  Trash2,
+  Link,
+  Unlink
 } from "lucide-react";
 import apiClient from "@/libs/api";
 
@@ -34,6 +36,15 @@ interface Sale {
   hasLabel: boolean;
   labelMessageId?: string;
   isManual?: boolean;
+  bundleId?: string;
+}
+
+interface Bundle {
+  _id: string;
+  name: string;
+  provider: string;
+  quantity: number;
+  roiMultiplier: number;
 }
 
 interface SalesData {
@@ -51,6 +62,7 @@ interface NewSaleForm {
   purchasePrice: string;
   salePrice: string;
   saleDate: string;
+  bundleId: string;
 }
 
 const carrierNames: Record<string, string> = {
@@ -88,7 +100,12 @@ export default function SalesPage() {
     purchasePrice: "",
     salePrice: "",
     saleDate: new Date().toISOString().split("T")[0],
+    bundleId: "",
   });
+
+  // Bundles for linking
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [linkingBundle, setLinkingBundle] = useState<string | null>(null);
 
   // Edit sale modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -99,7 +116,7 @@ export default function SalesPage() {
 
   // Pagination for completed sales
   const [completedPage, setCompletedPage] = useState(1);
-  
+
   // Edit sale modal
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editSaleForm, setEditSaleForm] = useState({
@@ -108,11 +125,13 @@ export default function SalesPage() {
     salePrice: "",
     saleDate: "",
     status: "completed" as "pending" | "completed" | "cancelled",
+    bundleId: "",
   });
   const [updatingSale, setUpdatingSale] = useState(false);
-  
+
   useEffect(() => {
     fetchSalesData();
+    fetchBundles();
   }, []);
 
   const fetchSalesData = async () => {
@@ -130,6 +149,33 @@ export default function SalesPage() {
     }
   };
 
+  const fetchBundles = async () => {
+    try {
+      const response = await apiClient.get("/bundles");
+      const data = response as unknown as { bundles: Bundle[] };
+      setBundles(data.bundles || []);
+    } catch (err: any) {
+      console.error("Error fetching bundles:", err);
+    }
+  };
+
+  const linkSaleToBundle = async (saleId: string, bundleId: string | null) => {
+    try {
+      setLinkingBundle(saleId);
+      await apiClient.post("/sales/link-bundle", {
+        saleId,
+        bundleId: bundleId || null,
+      });
+      await fetchSalesData();
+      await fetchBundles();
+    } catch (err: any) {
+      console.error("Error linking sale to bundle:", err);
+      alert(err?.response?.data?.error || "Error al vincular la venta");
+    } finally {
+      setLinkingBundle(null);
+    }
+  };
+
 
   const handleAddSale = async () => {
     if (!newSaleForm.itemName.trim()) {
@@ -139,24 +185,34 @@ export default function SalesPage() {
 
     try {
       setAddingSale(true);
-      await apiClient.post("/sales/manual", {
+      const response = await apiClient.post("/sales/manual", {
         itemName: newSaleForm.itemName,
         purchasePrice: parseFloat(newSaleForm.purchasePrice) || 0,
         salePrice: parseFloat(newSaleForm.salePrice) || 0,
         saleDate: newSaleForm.saleDate,
-      });
-      
+      }) as unknown as { sale: { _id: string } };
+
+      // If bundle selected, link the sale to it
+      if (newSaleForm.bundleId && response.sale?._id) {
+        await apiClient.post("/sales/link-bundle", {
+          saleId: response.sale._id,
+          bundleId: newSaleForm.bundleId,
+        });
+      }
+
       // Reset form and close modal
       setNewSaleForm({
         itemName: "",
         purchasePrice: "",
         salePrice: "",
         saleDate: new Date().toISOString().split("T")[0],
+        bundleId: "",
       });
       setShowAddModal(false);
-      
-      // Refresh sales
+
+      // Refresh data
       await fetchSalesData();
+      await fetchBundles();
     } catch (err: any) {
       console.error("Error adding sale:", err);
       alert(err?.response?.data?.error || "Error al añadir la venta");
@@ -167,15 +223,16 @@ export default function SalesPage() {
 
   const openEditModal = (sale: Sale) => {
     setEditingSale(sale);
-  
+
     setEditSaleForm({
       itemName: sale.itemName,
       purchasePrice: sale.purchasePrice?.toString() || "",
       salePrice: sale.amount?.toString() || "",
       saleDate: sale.saleDate.split("T")[0],
       status: sale.status,
+      bundleId: sale.bundleId || "",
     });
-  
+
     setShowEditModal(true);
   };
 
@@ -224,9 +281,9 @@ export default function SalesPage() {
   const downloadLabel = async (saleId: string) => {
     try {
       setDownloadingLabel(saleId);
-      
+
       const downloadUrl = `/api/sales/label?saleId=${saleId}`;
-      
+
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = `etiqueta-${saleId}.pdf`;
@@ -247,7 +304,7 @@ export default function SalesPage() {
 
     try {
       setDownloadingLabel("multiple");
-      
+
       // Llamar al endpoint que concatena los PDFs
       const saleIdsArray = Array.from(selectedPending);
       const response = await fetch("/api/sales/label", {
@@ -299,54 +356,54 @@ export default function SalesPage() {
     }
     setSelectedPending(newSelected);
   };
-  
 
-  
+
+
   const updateSale = async () => {
     if (!editingSale) return;
-  
+
     try {
       setUpdatingSale(true);
       setError(null);
-  
+
       const payload = editingSale.isManual
         ? {
-            itemName: editSaleForm.itemName,
-            purchasePrice: parseFloat(editSaleForm.purchasePrice) || 0,
-            salePrice: parseFloat(editSaleForm.salePrice) || 0,
-            saleDate: editSaleForm.saleDate,
-            status: editSaleForm.status,
-          }
+          itemName: editSaleForm.itemName,
+          purchasePrice: parseFloat(editSaleForm.purchasePrice) || 0,
+          salePrice: parseFloat(editSaleForm.salePrice) || 0,
+          saleDate: editSaleForm.saleDate,
+          status: editSaleForm.status,
+        }
         : {
-            purchasePrice: parseFloat(editSaleForm.purchasePrice) || 0,
-          };
-  
+          purchasePrice: parseFloat(editSaleForm.purchasePrice) || 0,
+        };
+
       await apiClient.put(`/sales/${editingSale._id}`, payload);
-  
+
       await fetchSalesData();
       setEditingSale(null);
     } catch (err: any) {
       console.error("Error updating sale:", err);
       setError(
         err?.response?.data?.error ||
-          err?.message ||
-          "Error al actualizar la venta"
+        err?.message ||
+        "Error al actualizar la venta"
       );
     } finally {
       setUpdatingSale(false);
     }
   };
-  
-  
+
+
   const deleteSale = async (saleId: string) => {
     if (!confirm("¿Estás seguro de que quieres eliminar esta venta?")) {
       return;
     }
-    
+
     try {
       setDeletingSale(saleId);
       setError(null);
-      
+
       await apiClient.delete(`/sales/${saleId}`);
       await fetchSalesData();
     } catch (err: any) {
@@ -398,12 +455,12 @@ export default function SalesPage() {
   const pendingSales = (salesData?.sales || [])
     .filter(s => {
       if (s.status !== "pending") return false;
-      
+
       if (s.shippingDeadline) {
         const deadline = new Date(s.shippingDeadline);
         return now <= deadline;
       }
-      
+
       const saleDate = new Date(s.saleDate);
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       return saleDate >= sevenDaysAgo;
@@ -411,7 +468,7 @@ export default function SalesPage() {
     .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
 
   const completedSales = (salesData?.sales || []).filter(s => s.status === "completed");
-  
+
   // Pagination for completed sales
   const totalCompletedPages = Math.ceil(completedSales.length / ITEMS_PER_PAGE);
   const paginatedCompletedSales = completedSales
@@ -586,10 +643,9 @@ export default function SalesPage() {
                               </td>
                               <td className="py-3 px-4">
                                 <span
-                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                                    carrierColors[sale.shippingCarrier] ||
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${carrierColors[sale.shippingCarrier] ||
                                     carrierColors.unknown
-                                  }`}
+                                    }`}
                                 >
                                   <Truck className="w-3 h-3" />
                                   {carrierNames[sale.shippingCarrier] ||
@@ -710,6 +766,9 @@ export default function SalesPage() {
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
                               Estado
                             </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                              Bundle
+                            </th>
                             <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
                               Acciones
                             </th>
@@ -757,6 +816,28 @@ export default function SalesPage() {
                                   <CheckCircle className="w-3 h-3" />
                                   Completada
                                 </span>
+                              </td>
+                              <td className="py-3 px-4">
+                                <select
+                                  value={sale.bundleId || ""}
+                                  onChange={(e) => linkSaleToBundle(sale._id, e.target.value || null)}
+                                  disabled={linkingBundle === sale._id}
+                                  className={`text-sm border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 ${sale.bundleId
+                                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                                    : "border-gray-200 bg-white text-gray-600"
+                                    } ${linkingBundle === sale._id ? "opacity-50" : ""}`}
+                                >
+                                  <option value="">Sin vincular</option>
+                                  {bundles.map((bundle) => (
+                                    <option
+                                      key={bundle._id}
+                                      value={bundle._id}
+                                      disabled={bundle.quantity <= 0 && bundle._id !== sale.bundleId}
+                                    >
+                                      {bundle.name} ({bundle.quantity} restantes)
+                                    </option>
+                                  ))}
+                                </select>
                               </td>
                               <td className="py-3 px-4">
                                 {sale.isManual || sale.status === "completed" ? (
@@ -913,6 +994,29 @@ export default function SalesPage() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vincular a Bundle (opcional)
+                </label>
+                <select
+                  value={newSaleForm.bundleId}
+                  onChange={(e) =>
+                    setNewSaleForm({ ...newSaleForm, bundleId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sin vincular</option>
+                  {bundles.filter(b => b.quantity > 0).map((bundle) => (
+                    <option key={bundle._id} value={bundle._id}>
+                      {bundle.name} ({bundle.quantity} restantes)
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Al vincular, el bundle reducirá su stock y aumentará su retorno.
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 p-4 border-t border-gray-100">
@@ -942,160 +1046,160 @@ export default function SalesPage() {
       )}
 
       {/* Edit Sale Modal */}
-{/* Edit Sale Modal */}
-{editingSale && (
-  <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
-    <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-md w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-in fade-in zoom-in duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">Editar Venta</h2>
-        <button
-          onClick={() => setEditingSale(null)}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Edit Sale Modal */}
+      {editingSale && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 max-w-md w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Editar Venta</h2>
+              <button
+                onClick={() => setEditingSale(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-      {/* Body */}
-      <div className="p-6 space-y-4">
-        {/* Aviso para ventas de Gmail */}
-        {!editingSale.isManual && (
-          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            ⚠️ Esta venta proviene de Gmail. Solo se puede modificar el coste.
-          </div>
-        )}
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              {/* Aviso para ventas de Gmail */}
+              {!editingSale.isManual && (
+                <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  ⚠️ Esta venta proviene de Gmail. Solo se puede modificar el coste.
+                </div>
+              )}
 
-        {/* Nombre del artículo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre del Artículo
-          </label>
-          <input
-            type="text"
-            value={editSaleForm.itemName}
-            onChange={(e) =>
-              setEditSaleForm({ ...editSaleForm, itemName: e.target.value })
-            }
-            disabled={!editingSale.isManual}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+              {/* Nombre del artículo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del Artículo
+                </label>
+                <input
+                  type="text"
+                  value={editSaleForm.itemName}
+                  onChange={(e) =>
+                    setEditSaleForm({ ...editSaleForm, itemName: e.target.value })
+                  }
+                  disabled={!editingSale.isManual}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500
                        disabled:bg-gray-100 disabled:text-gray-400"
-          />
-        </div>
+                />
+              </div>
 
-        {/* Coste (SIEMPRE editable) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Precio de Compra (€)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={editSaleForm.purchasePrice}
-            onChange={(e) =>
-              setEditSaleForm({
-                ...editSaleForm,
-                purchasePrice: e.target.value,
-              })
-            }
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+              {/* Coste (SIEMPRE editable) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Precio de Compra (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editSaleForm.purchasePrice}
+                  onChange={(e) =>
+                    setEditSaleForm({
+                      ...editSaleForm,
+                      purchasePrice: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+                />
+              </div>
 
-        {/* Precio de venta */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Precio de Venta (€)
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={editSaleForm.salePrice}
-            onChange={(e) =>
-              setEditSaleForm({
-                ...editSaleForm,
-                salePrice: e.target.value,
-              })
-            }
-            disabled={!editingSale.isManual}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+              {/* Precio de venta */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Precio de Venta (€)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editSaleForm.salePrice}
+                  onChange={(e) =>
+                    setEditSaleForm({
+                      ...editSaleForm,
+                      salePrice: e.target.value,
+                    })
+                  }
+                  disabled={!editingSale.isManual}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500
                        disabled:bg-gray-100 disabled:text-gray-400"
-          />
-        </div>
+                />
+              </div>
 
-        {/* Fecha de venta */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Fecha de Venta
-          </label>
-          <input
-            type="date"
-            value={editSaleForm.saleDate}
-            onChange={(e) =>
-              setEditSaleForm({
-                ...editSaleForm,
-                saleDate: e.target.value,
-              })
-            }
-            disabled={!editingSale.isManual}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+              {/* Fecha de venta */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Venta
+                </label>
+                <input
+                  type="date"
+                  value={editSaleForm.saleDate}
+                  onChange={(e) =>
+                    setEditSaleForm({
+                      ...editSaleForm,
+                      saleDate: e.target.value,
+                    })
+                  }
+                  disabled={!editingSale.isManual}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500
                        disabled:bg-gray-100 disabled:text-gray-400"
-          />
-        </div>
+                />
+              </div>
 
-        {/* Estado */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estado
-          </label>
-          <select
-            value={editSaleForm.status}
-            onChange={(e) =>
-              setEditSaleForm({
-                ...editSaleForm,
-                status: e.target.value as
-                  | "pending"
-                  | "completed"
-                  | "cancelled",
-              })
-            }
-            disabled={!editingSale.isManual}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
+              {/* Estado */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado
+                </label>
+                <select
+                  value={editSaleForm.status}
+                  onChange={(e) =>
+                    setEditSaleForm({
+                      ...editSaleForm,
+                      status: e.target.value as
+                        | "pending"
+                        | "completed"
+                        | "cancelled",
+                    })
+                  }
+                  disabled={!editingSale.isManual}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500
                        disabled:bg-gray-100 disabled:text-gray-400"
-          >
-            <option value="pending">Pendiente</option>
-            <option value="completed">Completada</option>
-            <option value="cancelled">Cancelada</option>
-          </select>
-        </div>
-      </div>
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="completed">Completada</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </div>
+            </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-        <button
-          onClick={() => setEditingSale(null)}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={updateSale}
-          disabled={updatingSale}
-          className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
-        >
-          {updatingSale ? "Actualizando..." : "Actualizar Venta"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setEditingSale(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={updateSale}
+                disabled={updatingSale}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {updatingSale ? "Actualizando..." : "Actualizar Venta"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

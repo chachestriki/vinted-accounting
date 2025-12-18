@@ -26,6 +26,7 @@ export interface ISale {
   hasLabel: boolean;
   snippet?: string;
   isManual?: boolean; // Si fue añadida manualmente
+  bundleId?: mongoose.Types.ObjectId; // Enlace al bundle
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -118,6 +119,12 @@ const saleSchema = new mongoose.Schema(
     isManual: {
       type: Boolean,
       default: false,
+    },
+    // Enlace al bundle (opcional)
+    bundleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bundle",
+      index: true,
     },
   },
   {
