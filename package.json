@@ -27,10 +27,10 @@
     "mongodb": "^6.21.0",
     "mongoose": "^8.17.1",
     "next": "15.4.8",
-    "next-auth": "^5.0.0-beta.25",
+    "next-auth": "5.0.0-beta.25",
     "next-sitemap": "^4.2.3",
     "nextjs-toploader": "^1.6.11",
-    "nodemailer": "^6.9.13",
+    "nodemailer": "^7.0.11",
     "pdf-lib": "^1.17.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -55,5 +55,8 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.9.2"
+  },
+  "overrides": {
+    "nodemailer": "^7.0.11"
   }
 }
