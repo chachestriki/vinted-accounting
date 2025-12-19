@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     // 1. Buscar ventas pendientes (etiquetas de envío)
     console.log("🔍 Buscando ventas pendientes (etiquetas de envío)...");
     const pendingMessageIds = await searchVintedPendingSales(gmail);
-    
+
     // 2. Buscar ventas completadas (transferencias)
     console.log("🔍 Buscando ventas completadas (transferencias)...");
     const completedMessageIds = await searchVintedCompletedSales(gmail);
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     // 6. Guardar/actualizar ventas en MongoDB
     let newSales = 0;
     let updatedSales = 0;
-    let expiredSales = 0;
+    let expiredSales = 0; // Se mantiene en 0 ya que ya no marcamos automáticamente como expiradas
     let errors = 0;
 
     // Procesar ventas pendientes (etiquetas)
@@ -106,24 +106,11 @@ export async function POST(req: NextRequest) {
       try {
         const completed = completedMap.get(pending.transactionId);
         const isCompleted = !!completed;
-        
+
         // Determinar si la venta está vencida (la fecha límite ya pasó)
-        let status: "pending" | "completed" = "pending";
-        let completedDate: Date | undefined;
-        
-        if (isCompleted) {
-          // Si hay correo de transferencia, está completada
-          status = "completed";
-          completedDate = new Date(completed!.date);
-        } else if (pending.shippingDeadline) {
-          // Si la fecha límite ya pasó, marcar como completada (asumimos que se envió)
-          const deadline = new Date(pending.shippingDeadline);
-          if (now > deadline) {
-            status = "completed";
-            completedDate = deadline; // Usar la fecha límite como fecha de completado
-            expiredSales++;
-          }
-        }
+        // Determinar status
+        let status: "pending" | "completed" = isCompleted ? "completed" : "pending";
+        let completedDate: Date | undefined = isCompleted ? new Date(completed!.date) : undefined;
 
         const saleData = {
           userId: user._id,

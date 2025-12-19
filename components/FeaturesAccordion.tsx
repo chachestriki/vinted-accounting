@@ -50,7 +50,7 @@ const features = [
     description:
       "Nunca más olvides un gasto ni falsees tus beneficios.",
     type: "image",
-    path: "https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3540&q=80",
+    path: "/pexels-pixabay-53621.jpg",
     alt: "A computer",
     svg: (
       <svg
@@ -73,6 +73,9 @@ const features = [
     title: "Impresión de etiquetas",
     description:
       "Imprime tus etiquetas, en función de tu compañía de envío.",
+    type: "image",
+    path: "/impresora.jpg",
+    alt: "Impresora",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -94,6 +97,9 @@ const features = [
     title: "Inventario",
     description:
       "Sabe qué tienes, qué se vende y qué te está inmovilizando dinero.",
+    type: "image",
+    path: "/inventory.jpg",
+    alt: "Inventario",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -141,9 +147,8 @@ const Item = ({
           {svg}
         </span>
         <span
-          className={`flex-1 text-base-content ${
-            isOpen ? "text-primary font-semibold" : ""
-          }`}
+          className={`flex-1 text-base-content ${isOpen ? "text-primary font-semibold" : ""
+            }`}
         >
           <h3 className="inline">{title}</h3>
         </span>
@@ -216,12 +221,12 @@ const FeaturesAccordion = () => {
     >
       <div className="px-8">
         <h2 className="font-extrabold text-4xl lg:text-6xl tracking-tight mb-12 md:mb-24">
-        Vintflow
+          Vintflow
           <span className="bg-neutral text-neutral-content px-2 md:px-4 ml-1 md:ml-1.5 leading-relaxed whitespace-nowrap">
-          pone orden
+            pone orden
           </span>
           a tu negocio de reventa
-          
+
         </h2>
         <div className=" flex flex-col md:flex-row gap-12 md:gap-24">
           <div className="grid grid-cols-1 items-stretch gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-20">

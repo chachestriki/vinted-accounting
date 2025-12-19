@@ -34,6 +34,13 @@ export const createCheckout = async ({
       typescript: true,
     });
 
+    // Here, we need to dynamically set the mode based on the priceId
+    // Fetch the price object from Stripe to check if it's recurring or one-time
+    const price = await stripe.prices.retrieve(priceId);
+
+    // Determine the mode based on whether the price is recurring or one-time
+    const sessionMode = price.recurring ? "subscription" : "payment";
+
     const extraParams: {
       customer?: string;
       customer_creation?: "always";
@@ -47,7 +54,7 @@ export const createCheckout = async ({
     if (user?.customerId) {
       extraParams.customer = user.customerId;
     } else {
-      if (mode === "payment") {
+      if (sessionMode === "payment") {
         extraParams.customer_creation = "always";
         extraParams.payment_intent_data = { setup_future_usage: "on_session" };
       }
@@ -57,30 +64,23 @@ export const createCheckout = async ({
       extraParams.tax_id_collection = { enabled: true };
     }
 
-    // Here, we need to dynamically set the mode based on the priceId
-    // Fetch the price object from Stripe to check if it's recurring or one-time
-    const price = await stripe.prices.retrieve(priceId);
-
-    // Determine the mode based on whether the price is recurring or one-time
-    const sessionMode = price.recurring ? "subscription" : "payment"; // Recurring prices are for subscriptions
-
     // Create checkout session with the correct mode
     const stripeSession = await stripe.checkout.sessions.create({
-      mode: sessionMode,  // Set 'subscription' for recurring or 'payment' for one-time
+      mode: sessionMode,
       allow_promotion_codes: true,
       client_reference_id: clientReferenceId,
       line_items: [
         {
-          price: priceId,  // Pass the correct priceId here
+          price: priceId,
           quantity: 1,
         },
       ],
       discounts: couponId
         ? [
-            {
-              coupon: couponId,
-            },
-          ]
+          {
+            coupon: couponId,
+          },
+        ]
         : [],
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -90,7 +90,7 @@ export const createCheckout = async ({
     return stripeSession.url;
   } catch (e) {
     console.error(e);
-    return null;
+    throw e;
   }
 };
 

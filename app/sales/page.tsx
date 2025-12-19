@@ -401,15 +401,17 @@ export default function SalesPage() {
       if (s.status !== "pending") return false;
       if (s.shippingDeadline) {
         const deadline = new Date(s.shippingDeadline);
+        // Mostrar si el plazo no ha vencido todavía
         return nowVal <= deadline;
       }
+      // Fallback para ventas sin fecha límite detectada: solo mostrar si son de los últimos 7 días
       const saleDate = new Date(s.saleDate);
       const sevenDaysAgo = new Date(nowVal.getTime() - 7 * 24 * 60 * 60 * 1000);
       return saleDate >= sevenDaysAgo;
     })
     .sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
 
-  const completedSales = (salesData?.sales || []).filter(s => s.status === "completed");
+  const completedSales = (salesData?.sales || []).filter(s => s.status === "completed" && (s.amount > 0 || s.isManual));
 
   const totalCompletedPages = Math.ceil(completedSales.length / ITEMS_PER_PAGE);
   const paginatedCompletedSales = completedSales
@@ -592,6 +594,7 @@ export default function SalesPage() {
                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Coste</th>
                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Precio Venta</th>
                             <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Ganancia</th>
+                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">ROI</th>
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Lote</th>
                             <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Acciones</th>
                           </tr>
@@ -614,6 +617,9 @@ export default function SalesPage() {
                                 <td className={`py-3 px-4 text-sm font-semibold text-right ${!hasCost ? 'text-gray-400' : profit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                   {hasCost ? formatCurrency(profit) : "-"}
                                 </td>
+                                <td className="py-3 px-4 text-sm text-right text-indigo-600 font-medium">
+                                  {hasCost ? `${((sale.amount || 0) / sale.purchasePrice!).toFixed(2)}x` : "-"}
+                                </td>
                                 <td className="py-3 px-4">
                                   <select
                                     value={sale.bundleId || ""}
@@ -622,11 +628,13 @@ export default function SalesPage() {
                                     className={`text-sm border rounded-lg px-2 py-1 focus:outline-none ${sale.bundleId ? "border-blue-200 bg-blue-50 text-blue-700" : "border-gray-200"}`}
                                   >
                                     <option value="">Sin vincular</option>
-                                    {bundles.map((bundle) => (
-                                      <option key={bundle._id} value={bundle._id} disabled={bundle.quantity <= 0 && bundle._id !== sale.bundleId}>
-                                        {bundle.name} ({bundle.quantity})
-                                      </option>
-                                    ))}
+                                    {bundles
+                                      .filter(bundle => bundle.quantity > 0 || bundle._id === sale.bundleId)
+                                      .map((bundle) => (
+                                        <option key={bundle._id} value={bundle._id}>
+                                          {bundle.name} ({bundle.quantity})
+                                        </option>
+                                      ))}
                                   </select>
                                 </td>
                                 <td className="py-3 px-4 text-center">
@@ -748,11 +756,13 @@ export default function SalesPage() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 >
                   <option value="">Sin vincular</option>
-                  {bundles.map(b => (
-                    <option key={b._id} value={b._id} disabled={b.quantity <= 0 && b._id !== editingSale.bundleId}>
-                      {b.name} ({b.quantity})
-                    </option>
-                  ))}
+                  {bundles
+                    .filter(b => b.quantity > 0 || b._id === editingSale.bundleId)
+                    .map(b => (
+                      <option key={b._id} value={b._id}>
+                        {b.name} ({b.quantity})
+                      </option>
+                    ))}
                 </select>
               </div>
             </div>
