@@ -21,11 +21,9 @@ const dateRanges: { value: DateRange; label: string }[] = [
   { value: "last7days", label: "Últimos 7 Días" },
   { value: "last14days", label: "Últimos 14 Días" },
   { value: "thisMonth", label: "Este Mes" },
-  { value: "perMonth", label: "Por Mes" },
   { value: "last3months", label: "Últimos 3 Meses" },
   { value: "thisYear", label: "Este Año" },
-  { value: "allTime", label: "Todo" },
-  { value: "custom", label: "Personalizado" },
+  { value: "allTime", label: "Todo" }
 ];
 
 const DateFilter = ({ selectedRange, onRangeChange }: DateFilterProps) => {

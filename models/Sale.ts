@@ -11,7 +11,8 @@ export type ShippingCarrier = "correos" | "inpost" | "seur" | "vintedgo" | "unkn
 export interface ISale {
   _id?: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  transactionId: string;
+  emailId: string; // Gmail messageId - PRIMARY KEY
+  transactionId?: string;
   itemName: string;
   amount: number;
   purchasePrice?: number; // Precio de compra/coste
@@ -21,11 +22,11 @@ export interface ISale {
   shippingDeadline?: Date;
   saleDate: Date;
   completedDate?: Date;
-  gmailMessageId: string;
   labelMessageId?: string;
   hasLabel: boolean;
   snippet?: string;
   isManual?: boolean; // Si fue añadida manualmente
+  bundleId?: mongoose.Types.ObjectId; // Enlace al bundle
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -40,10 +41,16 @@ const saleSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // ID de transacción de Vinted (único)
-    transactionId: {
+    // ID del mensaje de Gmail (PRIMARY KEY - único por email)
+    emailId: {
       type: String,
       required: true,
+      unique: true,
+      index: true,
+    },
+    // ID de transacción de Vinted (opcional, puede no estar presente)
+    transactionId: {
+      type: String,
       index: true,
     },
     // Nombre del artículo vendido
@@ -95,12 +102,6 @@ const saleSchema = new mongoose.Schema(
     completedDate: {
       type: Date,
     },
-    // ID del mensaje de Gmail (para evitar duplicados)
-    gmailMessageId: {
-      type: String,
-      required: true,
-      index: true,
-    },
     // ID del mensaje de Gmail con la etiqueta de envío
     labelMessageId: {
       type: String,
@@ -119,6 +120,12 @@ const saleSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Enlace al bundle (opcional)
+    bundleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bundle",
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -126,8 +133,8 @@ const saleSchema = new mongoose.Schema(
   }
 );
 
-// Índice compuesto para evitar duplicados por usuario y transacción
-saleSchema.index({ userId: 1, transactionId: 1 }, { unique: true });
+// Índice compuesto para búsquedas por usuario y emailId
+saleSchema.index({ userId: 1, emailId: 1 });
 
 // Índice para búsquedas por fecha
 saleSchema.index({ userId: 1, saleDate: -1 });

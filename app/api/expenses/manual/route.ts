@@ -6,78 +6,86 @@ import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
-// POST - Crear gasto manual
+// POST - Añadir gasto manual
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "No autorizado - Por favor inicia sesión" },
+        { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
     await connectMongo();
 
-    // Buscar usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    // Obtener datos del cuerpo de la solicitud
     const body = await req.json();
-    const { category, amount, discount = 0, description, itemCount = 0, expenseDate } = body;
+    const { type, description, amount, expenseDate } = body;
 
-    // Validar campos requeridos
-    if (!category || !amount || !expenseDate) {
+    // Validaciones
+    if (!type || (type !== "armario" && type !== "destacado")) {
       return NextResponse.json(
-        { error: "Faltan campos requeridos: category, amount, expenseDate" },
+        { error: "El tipo de gasto es requerido (armario o destacado)" },
         { status: 400 }
       );
     }
 
-    // Validar categoría
-    if (!["destacado", "armario", "otros"].includes(category)) {
+    if (!description || description.trim() === "") {
       return NextResponse.json(
-        { error: "Categoría inválida. Debe ser: destacado, armario u otros" },
+        { error: "La descripción es requerida" },
         { status: 400 }
       );
     }
 
-    // Calcular total
-    const totalAmount = amount - discount;
+    if (!amount || amount <= 0) {
+      return NextResponse.json(
+        { error: "El monto debe ser mayor a 0" },
+        { status: 400 }
+      );
+    }
 
-    // Crear gasto manual
-    // Usar timestamp como gmailMessageId para gastos manuales
-    const gmailMessageId = `manual-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Generar un emailId único para gastos manuales
+    const manualEmailId = `manual-expense-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-    const expense = await Expense.create({
+    const expenseData = {
       userId: user._id,
-      category,
+      emailId: manualEmailId, // PRIMARY KEY
+      type: type as "armario" | "destacado",
+      description: description.trim(),
       amount: parseFloat(amount),
-      discount: parseFloat(discount),
-      totalAmount,
-      description: description || `Gasto ${category}`,
-      itemCount: parseInt(itemCount) || 0,
-      expenseDate: new Date(expenseDate),
-      gmailMessageId,
-      snippet: "Gasto añadido manualmente",
-    });
+      expenseDate: expenseDate ? new Date(expenseDate) : new Date(),
+      isManual: true, // Marcar como gasto manual
+    };
+
+    const newExpense = await Expense.create(expenseData);
 
     return NextResponse.json({
       success: true,
-      message: "Gasto añadido exitosamente",
-      expense,
+      message: "Gasto añadido correctamente",
+      expense: newExpense,
     });
   } catch (error: any) {
-    console.error("Error creando gasto manual:", error);
+    console.error("Error adding manual expense:", error);
+    
+    // Manejar error de duplicado
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { error: "Ya existe un gasto con este ID" },
+        { status: 409 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Error al crear el gasto" },
+      { error: error.message || "Error al añadir el gasto" },
       { status: 500 }
     );
   }

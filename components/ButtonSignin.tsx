@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useSession, signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import config from "@/config";
 
 // A simple button to sign in with our providers (Google & Magic Links).
@@ -34,7 +34,7 @@ const ButtonSignin = ({
         className={`btn ${extraStyle ? extraStyle : ""}`}
       >
         {session.user?.image ? (
-          <img
+          <Image
             src={session.user?.image}
             alt={session.user?.name || "Account"}
             className="w-6 h-6 rounded-full shrink-0"

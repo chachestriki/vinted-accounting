@@ -1,10 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { useSession, signOut } from "next-auth/react";
 import apiClient from "@/libs/api";
+import Image from "next/image";
 
 // A button to show user some account actions
 //  1. Billing: open a Stripe Customer Portal to manage their billing (cancel subscription, update payment method, etc.).
@@ -47,7 +47,7 @@ const ButtonAccount = () => {
 				<>
 					<Popover.Button className="btn">
 						{session?.user?.image ? (
-							<img
+							<Image
 								src={session?.user?.image}
 								alt={session?.user?.name || "Account"}
 								className="w-6 h-6 rounded-full shrink-0"
@@ -71,9 +71,8 @@ const ButtonAccount = () => {
 								xmlns="http://www.w3.org/2000/svg"
 								viewBox="0 0 20 20"
 								fill="currentColor"
-								className={`w-5 h-5 duration-200 opacity-50 ${
-									open ? "transform rotate-180 " : ""
-								}`}
+								className={`w-5 h-5 duration-200 opacity-50 ${open ? "transform rotate-180 " : ""
+									}`}
 							>
 								<path
 									fillRule="evenodd"

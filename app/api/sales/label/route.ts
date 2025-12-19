@@ -10,6 +10,7 @@ import {
 } from "@/libs/gmail-api";
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
+import { PDFDocument } from "pdf-lib";
 
 export const dynamic = "force-dynamic";
 
@@ -293,15 +294,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Return labels info (frontend will handle individual downloads)
-    return NextResponse.json({
-      success: true,
-      labels: labels.map((l) => ({
-        saleId: l.saleId,
-        filename: l.filename,
-        // For security, we return a download URL instead of raw data
-        downloadUrl: `/api/sales/label?saleId=${l.saleId}`,
-      })),
+    // Concatenar todos los PDFs en uno solo
+    const mergedPdf = await PDFDocument.create();
+
+    for (const label of labels) {
+      try {
+        // Convertir base64url a base64 y luego a buffer
+        const base64 = label.data.replace(/-/g, "+").replace(/_/g, "/");
+        const pdfBytes = Buffer.from(base64, "base64");
+        
+        // Cargar el PDF
+        const pdf = await PDFDocument.load(pdfBytes);
+        
+        // Copiar todas las páginas al PDF combinado
+        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        pages.forEach((page) => mergedPdf.addPage(page));
+      } catch (err) {
+        console.error(`Error merging PDF for sale ${label.saleId}:`, err);
+        // Continuar con los demás PDFs aunque uno falle
+      }
+    }
+
+    // Generar el PDF combinado
+    const mergedPdfBytes = await mergedPdf.save();
+    const mergedPdfBuffer = Buffer.from(mergedPdfBytes);
+
+    // Retornar el PDF combinado
+    return new NextResponse(mergedPdfBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="etiquetas-combinadas-${new Date().toISOString().split("T")[0]}.pdf"`,
+        "Content-Length": mergedPdfBuffer.length.toString(),
+      },
     });
   } catch (error: any) {
     console.error("Error getting labels:", error);

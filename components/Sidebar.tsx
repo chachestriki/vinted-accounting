@@ -1,7 +1,10 @@
 "use client";
 
+import React from "react";
+
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -62,11 +65,10 @@ const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-                active
-                  ? "bg-base-300 font-semibold text-base-content"
-                  : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${active
+                ? "bg-base-300 font-semibold text-base-content"
+                : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span>{item.name}</span>
@@ -79,11 +81,10 @@ const Sidebar = () => {
       <div className="border-t border-base-300 p-4">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-            pathname === "/settings"
-              ? "bg-base-300 font-semibold text-base-content"
-              : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
-          }`}
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${pathname === "/settings"
+            ? "bg-base-300 font-semibold text-base-content"
+            : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+            }`}
         >
           <Settings className="w-5 h-5" />
           <span>Settings</span>
@@ -98,11 +99,12 @@ const Sidebar = () => {
               <Popover.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-base-200 transition-colors duration-200">
                 <div className="w-8 h-8 rounded-full bg-base-300 flex items-center justify-center shrink-0">
                   {session?.user?.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
                       alt={session.user.name || "User"}
-                      className="w-8 h-8 rounded-full"
-                      referrerPolicy="no-referrer"
+                      width={32}
+                      height={32}
+                      className="rounded-full"
                     />
                   ) : (
                     <span className="text-sm font-medium">
@@ -121,9 +123,8 @@ const Sidebar = () => {
                   </p>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-base-content/60 transition-transform duration-200 ${
-                    open ? "transform rotate-180" : ""
-                  }`}
+                  className={`w-4 h-4 text-base-content/60 transition-transform duration-200 ${open ? "transform rotate-180" : ""
+                    }`}
                 />
               </Popover.Button>
               <Transition

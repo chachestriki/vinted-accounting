@@ -13,22 +13,30 @@ interface FAQItemProps {
 
 const faqList: FAQItemProps[] = [
   {
-    question: "What do I get exactly?",
-    answer: <div className="space-y-2 leading-relaxed">Loreum Ipseum</div>,
+    question: "¿Qué puedo hacer con Vintflow?",
+    answer: <div className="space-y-2 leading-relaxed">
+      - Control de ventas y pedidos
+      - Registro de gastos
+      - Impresión de etiquetas
+      - Control de inventario
+      - Control de beneficios
+    </div>,
   },
   {
-    question: "Can I get a refund?",
+    question: "¿Puedo obtener un reembolso?",
     answer: (
       <p>
-        Yes! You can request a refund within 7 days of your purchase. Reach out
-        by email.
+        Sí! Puedes solicitar un reembolso dentro de los 7 días de tu compra. Contacta
+        por email.
       </p>
     ),
   },
   {
-    question: "I have another question",
+    question: "Tengo otra pregunta. ¿Cómo puedo contactar ?",
     answer: (
-      <div className="space-y-2 leading-relaxed">Cool, contact us by email</div>
+      <div className="space-y-2 leading-relaxed">
+        Puedes contactarnos por email a <a href="mailto:vintflow@gmail.com">vintflow@gmail.com</a>
+      </div>
     ),
   },
 ];
@@ -100,7 +108,7 @@ const FAQ = () => {
         <div className="flex flex-col text-left basis-1/2">
           <p className="inline-block font-semibold text-primary mb-4">FAQ</p>
           <p className="sm:text-4xl text-3xl font-extrabold text-base-content">
-            Frequently Asked Questions
+            Preguntas frecuentes
           </p>
         </div>
 

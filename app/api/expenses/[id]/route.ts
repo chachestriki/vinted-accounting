@@ -3,53 +3,41 @@ import { auth } from "@/libs/next-auth";
 import connectMongo from "@/libs/mongoose";
 import Expense from "@/models/Expense";
 import User from "@/models/User";
-import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
-// PATCH - Actualizar gasto
-export async function PATCH(
+// PUT - Editar gasto manual
+export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "No autorizado - Por favor inicia sesión" },
+        { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
     await connectMongo();
 
-    // Buscar usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const { id } = params;
-
-    // Validar ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "ID de gasto inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Obtener datos del cuerpo
+    const { id: expenseId } = await context.params;
     const body = await req.json();
-    const { category, amount, discount, description, itemCount, expenseDate } = body;
+    const { type, description, amount, expenseDate } = body;
 
-    // Buscar gasto
+    // Buscar el gasto
     const expense = await Expense.findOne({
-      _id: id,
+      _id: expenseId,
       userId: user._id,
     });
 
@@ -60,34 +48,56 @@ export async function PATCH(
       );
     }
 
-    // Actualizar campos
-    if (category !== undefined) {
-      if (!["destacado", "armario", "otros"].includes(category)) {
-        return NextResponse.json(
-          { error: "Categoría inválida" },
-          { status: 400 }
-        );
-      }
-      expense.category = category;
+    // Solo permitir editar gastos manuales
+    if (!expense.isManual) {
+      return NextResponse.json(
+        { error: "Solo se pueden editar gastos creados manualmente" },
+        { status: 403 }
+      );
     }
-    if (amount !== undefined) expense.amount = parseFloat(amount);
-    if (discount !== undefined) expense.discount = parseFloat(discount);
-    if (description !== undefined) expense.description = description;
-    if (itemCount !== undefined) expense.itemCount = parseInt(itemCount);
-    if (expenseDate !== undefined) expense.expenseDate = new Date(expenseDate);
 
-    // Recalcular total
-    expense.totalAmount = expense.amount - expense.discount;
+    // Validaciones
+    if (type && type !== "armario" && type !== "destacado") {
+      return NextResponse.json(
+        { error: "El tipo de gasto debe ser 'armario' o 'destacado'" },
+        { status: 400 }
+      );
+    }
 
-    await expense.save();
+    if (description && description.trim() === "") {
+      return NextResponse.json(
+        { error: "La descripción no puede estar vacía" },
+        { status: 400 }
+      );
+    }
+
+    if (amount !== undefined && amount <= 0) {
+      return NextResponse.json(
+        { error: "El monto debe ser mayor a 0" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar solo los campos proporcionados
+    const updateData: any = {};
+    if (type) updateData.type = type;
+    if (description) updateData.description = description.trim();
+    if (amount !== undefined) updateData.amount = parseFloat(amount);
+    if (expenseDate) updateData.expenseDate = new Date(expenseDate);
+
+    const updatedExpense = await Expense.findByIdAndUpdate(
+      expenseId,
+      { $set: updateData },
+      { new: true }
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Gasto actualizado exitosamente",
-      expense,
+      message: "Gasto actualizado correctamente",
+      expense: updatedExpense,
     });
   } catch (error: any) {
-    console.error("Error actualizando gasto:", error);
+    console.error("Error updating expense:", error);
     return NextResponse.json(
       { error: error.message || "Error al actualizar el gasto" },
       { status: 500 }
@@ -95,45 +105,36 @@ export async function PATCH(
   }
 }
 
-// DELETE - Eliminar gasto
+// DELETE - Eliminar gasto manual
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "No autorizado - Por favor inicia sesión" },
+        { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
     await connectMongo();
 
-    // Buscar usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const { id } = params;
+    const { id: expenseId } = await context.params;
 
-    // Validar ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "ID de gasto inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Buscar y eliminar gasto
-    const expense = await Expense.findOneAndDelete({
-      _id: id,
+    // Buscar el gasto
+    const expense = await Expense.findOne({
+      _id: expenseId,
       userId: user._id,
     });
 
@@ -144,12 +145,22 @@ export async function DELETE(
       );
     }
 
+    // Solo permitir eliminar gastos manuales
+    if (!expense.isManual) {
+      return NextResponse.json(
+        { error: "Solo se pueden eliminar gastos creados manualmente" },
+        { status: 403 }
+      );
+    }
+
+    await Expense.findByIdAndDelete(expenseId);
+
     return NextResponse.json({
       success: true,
-      message: "Gasto eliminado exitosamente",
+      message: "Gasto eliminado correctamente",
     });
   } catch (error: any) {
-    console.error("Error eliminando gasto:", error);
+    console.error("Error deleting expense:", error);
     return NextResponse.json(
       { error: error.message || "Error al eliminar el gasto" },
       { status: 500 }

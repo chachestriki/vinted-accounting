@@ -3,8 +3,9 @@ import { auth } from "@/libs/next-auth";
 import {
   getGmailClient,
   refreshAccessToken,
-  searchVintedEmails,
-  getEmailDetailsBatch,
+  searchVintedCompletedSales,
+  processEmailsBatch,
+  getCompletedSaleDetails,
 } from "@/libs/gmail-api";
 import { calculateWeeklySummary } from "@/libs/gmail-utils";
 
@@ -81,9 +82,8 @@ export async function GET(req: NextRequest) {
 
     // Search for ALL Vinted emails (sin límite)
     console.log("🔍 Searching for ALL Vinted emails (sin límite)...");
-    const messageIds = await searchVintedEmails(
-      gmail,
-      'from:no-reply@vinted.es "Transferencia a tu saldo Vinted"'
+    const messageIds = await searchVintedCompletedSales(
+      gmail
     );
 
     console.log(`📬 Total de correos encontrados: ${messageIds.length}`);
@@ -103,12 +103,17 @@ export async function GET(req: NextRequest) {
 
     // Get details for each email using batch processing
     console.log("📧 Procesando detalles de correos en lotes...");
-    const emailDetailsResults = await getEmailDetailsBatch(gmail, messageIds, 20);
-
-    // Filter out null results (emails that couldn't be parsed)
-    const emailDetails = emailDetailsResults.filter(
-      (detail): detail is NonNullable<typeof detail> => detail !== null
+    const emailDetails = await processEmailsBatch(
+      gmail,
+      messageIds,
+      getCompletedSaleDetails,
+      20
     );
+
+    // // Filter out null results (emails that couldn't be parsed)
+    // const emailDetails = emailDetailsResults.filter(
+    //   (detail): detail is NonNullable<typeof detail> => detail !== null
+    // );
 
     // Calculate summary
     const summary = calculateWeeklySummary(emailDetails);

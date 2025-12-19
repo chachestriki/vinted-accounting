@@ -3,53 +3,40 @@ import { auth } from "@/libs/next-auth";
 import connectMongo from "@/libs/mongoose";
 import Sale from "@/models/Sale";
 import User from "@/models/User";
-import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
-// PATCH - Actualizar venta
-export async function PATCH(
+export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<any> }
 ) {
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "No autorizado - Por favor inicia sesión" },
+        { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
     await connectMongo();
 
-    // Buscar usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const { id } = params;
-
-    // Validar ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "ID de venta inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Obtener datos del cuerpo
+    const { id: saleId } = await context.params;
     const body = await req.json();
-    const { itemName, amount, purchasePrice, status, saleDate, shippingCarrier } = body;
+    const { itemName, purchasePrice, salePrice, saleDate, status } = body;
 
-    // Buscar venta
+    // Buscar la venta
     const sale = await Sale.findOne({
-      _id: id,
+      _id: saleId,
       userId: user._id,
     });
 
@@ -60,43 +47,87 @@ export async function PATCH(
       );
     }
 
-    // Actualizar campos
-    if (itemName !== undefined) sale.itemName = itemName;
-    if (amount !== undefined) sale.amount = parseFloat(amount);
-    if (purchasePrice !== undefined) sale.purchasePrice = parseFloat(purchasePrice);
-    if (status !== undefined) {
-      if (!["pending", "completed", "cancelled"].includes(status)) {
+    // Si la venta NO es manual, solo permitir editar el coste
+    if (!sale.isManual) {
+      const allowedFields = ["purchasePrice"];
+      const receivedFields = Object.keys(body);
+
+      const invalidFields = receivedFields.filter(
+        (field) => !allowedFields.includes(field)
+      );
+
+      if (invalidFields.length > 0) {
         return NextResponse.json(
-          { error: "Estado inválido" },
-          { status: 400 }
+          {
+            error:
+              "Las ventas importadas de Gmail solo permiten editar el coste",
+          },
+          { status: 403 }
         );
       }
-      sale.status = status;
-      // Si se marca como completada, agregar fecha de completado
-      if (status === "completed" && !sale.completedDate) {
-        sale.completedDate = new Date();
-      }
-    }
-    if (saleDate !== undefined) sale.saleDate = new Date(saleDate);
-    if (shippingCarrier !== undefined) {
-      if (!["correos", "inpost", "seur", "vintedgo", "unknown"].includes(shippingCarrier)) {
-        return NextResponse.json(
-          { error: "Compañía de envío inválida" },
-          { status: 400 }
-        );
-      }
-      sale.shippingCarrier = shippingCarrier;
     }
 
-    await sale.save();
+
+    // Validaciones
+    if (itemName && itemName.trim() === "") {
+      return NextResponse.json(
+        { error: "El nombre del artículo no puede estar vacío" },
+        { status: 400 }
+      );
+    }
+
+    if (salePrice !== undefined && salePrice < 0) {
+      return NextResponse.json(
+        { error: "El precio de venta no puede ser negativo" },
+        { status: 400 }
+      );
+    }
+
+    if (purchasePrice !== undefined && purchasePrice < 0) {
+      return NextResponse.json(
+        { error: "El precio de compra no puede ser negativo" },
+        { status: 400 }
+      );
+    }
+
+    if (status && !["pending", "completed", "cancelled"].includes(status)) {
+      return NextResponse.json(
+        { error: "Estado inválido" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar solo los campos proporcionados
+    const updateData: any = {};
+    if (itemName) updateData.itemName = itemName.trim();
+    if (salePrice !== undefined) updateData.amount = parseFloat(salePrice);
+    if (purchasePrice !== undefined) updateData.purchasePrice = parseFloat(purchasePrice);
+    if (saleDate) {
+      updateData.saleDate = new Date(saleDate);
+      if (status === "completed" || sale.status === "completed") {
+        updateData.completedDate = new Date(saleDate);
+      }
+    }
+    if (status) {
+      updateData.status = status;
+      if (status === "completed" && !updateData.completedDate) {
+        updateData.completedDate = updateData.saleDate || sale.saleDate;
+      }
+    }
+
+    const updatedSale = await Sale.findByIdAndUpdate(
+      saleId,
+      { $set: updateData },
+      { new: true }
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Venta actualizada exitosamente",
-      sale,
+      message: "Venta actualizada correctamente",
+      sale: updatedSale,
     });
   } catch (error: any) {
-    console.error("Error actualizando venta:", error);
+    console.error("Error updating sale:", error);
     return NextResponse.json(
       { error: error.message || "Error al actualizar la venta" },
       { status: 500 }
@@ -104,45 +135,36 @@ export async function PATCH(
   }
 }
 
-// DELETE - Eliminar venta
+// DELETE - Eliminar venta manual
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<any> }
 ) {
   try {
     const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: "No autorizado - Por favor inicia sesión" },
+        { error: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
 
     await connectMongo();
 
-    // Buscar usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
 
-    const { id } = params;
+    const { id: saleId } = await context.params;
 
-    // Validar ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: "ID de venta inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Buscar y eliminar venta
-    const sale = await Sale.findOneAndDelete({
-      _id: id,
+    // Buscar la venta
+    const sale = await Sale.findOne({
+      _id: saleId,
       userId: user._id,
     });
 
@@ -153,12 +175,22 @@ export async function DELETE(
       );
     }
 
+    // Solo permitir eliminar ventas manuales
+    if (!sale.isManual) {
+      return NextResponse.json(
+        { error: "Solo se pueden eliminar ventas creadas manualmente" },
+        { status: 403 }
+      );
+    }
+
+    await Sale.findByIdAndDelete(saleId);
+
     return NextResponse.json({
       success: true,
-      message: "Venta eliminada exitosamente",
+      message: "Venta eliminada correctamente",
     });
   } catch (error: any) {
-    console.error("Error eliminando venta:", error);
+    console.error("Error deleting sale:", error);
     return NextResponse.json(
       { error: error.message || "Error al eliminar la venta" },
       { status: 500 }

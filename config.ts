@@ -12,9 +12,9 @@ const config = {
   appName: "Vintflow",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app.",
+    "La plataforma de contabilidad creada exclusivamente para revendedores. Controla ventas, pedidos, gastos, inventario y beneficios reales sin Excel, sin líos y sin perder dinero.",
   // REQUIRED (no https://, not trailing slash at the end, just the naked domain)
-  domainName: "shipfa.st",
+  domainName: "vintflow.com",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (resend.supportEmail) otherwise customer support won't work.
     id: "",
@@ -22,55 +22,45 @@ const config = {
     onlyShowOnRoutes: ["/"],
   },
   stripe: {
-    // Create multiple plans in your Stripe dashboard, then add them here. You can add as many plans as you want, just make sure to add the priceId
     plans: [
       {
-        // REQUIRED — we use this to find the plan in the webhook (for instance if you want to update the user's credits based on the plan)
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
-            : "price_456",
-        //  REQUIRED - Name of the plan, displayed on the pricing page
+            ? "price_1SevlPERxtxjzj6apzk66kd3"  // Development priceId
+            : "price_456",                    // Production priceId
         name: "Starter",
-        // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Perfect for small projects",
-        // The price you want to display, the one user will be charged on Stripe.
-        price: 99,
-        // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
-        priceAnchor: 149,
+        description: "Perfecto para tu negocio de reventa",
+        price: 19.95,
+        priceAnchor: 24.95,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
+          { name: "Ventas y pedidos ilimitados" },
+          { name: "Registro de gastos" },
+          { name: "Impresión de etiquetas" },
+          { name: "Control de inventario" },
         ],
       },
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1O5KtcAxyNprDp7iftKnrrpw"
-            : "price_456",
-        // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
+            ? "price_1SevlxERxtxjzj6aMyZAZvys"  // Development priceId
+            : "price_456",                    // Production priceId
         isFeatured: true,
         name: "Advanced",
-        description: "You need more power",
-        price: 149,
-        priceAnchor: 299,
+        description: "Para revendedores que quieren escalar con control total",
+        price: 29.95,
+        priceAnchor: 49.95,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
-          { name: "1 year of updates" },
-          { name: "24/7 support" },
+          { name: "Ventas y pedidos ilimitados" },
+          { name: "Registro de gastos" },
+          { name: "Impresión de etiquetas con impresora térmica" },
+          { name: "Control de inventario" },
+          { name: "Descarga de datos en Excel" },
+          { name: "Soporte técnico" },
         ],
       },
     ],
   },
+  
   aws: {
     // If you use AWS S3/Cloudfront, put values in here
     bucket: "bucket-name",

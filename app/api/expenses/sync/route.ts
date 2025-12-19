@@ -82,19 +82,17 @@ export async function POST(req: NextRequest) {
       try {
         const expenseData = {
           userId: user._id,
-          category: expense.category,
-          amount: expense.amount,
-          discount: expense.discount,
-          totalAmount: expense.totalAmount,
+          emailId: expense.messageId, // Gmail messageId - PRIMARY KEY
+          type: expense.type,
           description: expense.description,
-          itemCount: expense.itemCount,
+          amount: expense.amount,
           expenseDate: new Date(expense.date),
-          gmailMessageId: expense.messageId,
           snippet: expense.snippet,
+          isManual: false,
         };
 
         const result = await Expense.findOneAndUpdate(
-          { userId: user._id, gmailMessageId: expense.messageId },
+          { emailId: expense.messageId },
           { $set: expenseData },
           { upsert: true, new: true }
         );
@@ -115,16 +113,15 @@ export async function POST(req: NextRequest) {
       { $match: { userId: user._id } },
       {
         $group: {
-          _id: "$category",
+          _id: "$type",
           count: { $sum: 1 },
-          totalAmount: { $sum: "$totalAmount" },
+          totalAmount: { $sum: "$amount" },
         },
       },
     ]);
 
     const destacadoStats = stats.find((s) => s._id === "destacado") || { count: 0, totalAmount: 0 };
     const armarioStats = stats.find((s) => s._id === "armario") || { count: 0, totalAmount: 0 };
-    const otrosStats = stats.find((s) => s._id === "otros") || { count: 0, totalAmount: 0 };
 
     console.log(`✅ Sincronización completada:`);
     console.log(`   📧 Correos encontrados: ${expenseMessageIds.length}`);
@@ -142,7 +139,6 @@ export async function POST(req: NextRequest) {
       stats: {
         destacado: destacadoStats,
         armario: armarioStats,
-        otros: otrosStats,
       },
     });
   } catch (error: any) {

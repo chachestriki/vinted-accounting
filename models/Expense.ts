@@ -1,22 +1,20 @@
 import mongoose from "mongoose";
 import toJSON from "./plugins/toJSON";
 
-// Categorías de gastos
-export type ExpenseCategory = "destacado" | "armario" | "otros";
+// Tipos de gasto
+export type ExpenseType = "armario" | "destacado";
 
 // Interface para TypeScript
 export interface IExpense {
   _id?: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  category: ExpenseCategory;
+  emailId: string; // Gmail messageId - PRIMARY KEY
+  type: ExpenseType;
+  description: string;
   amount: number;
-  discount?: number;
-  totalAmount: number; // amount - discount
-  description?: string;
-  itemCount?: number; // Cantidad de artículos (para destacado)
   expenseDate: Date;
-  gmailMessageId: string;
   snippet?: string;
+  isManual?: boolean; // Si fue añadido manualmente
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -31,38 +29,30 @@ const expenseSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // Categoría del gasto
-    category: {
+    // ID del mensaje de Gmail (PRIMARY KEY - único por email)
+    emailId: {
       type: String,
-      enum: ["destacado", "armario", "otros"],
+      required: true,
+      unique: true,
+      index: true,
+    },
+    // Tipo de gasto
+    type: {
+      type: String,
+      enum: ["armario", "destacado"],
       required: true,
       index: true,
+    },
+    // Descripción del gasto
+    description: {
+      type: String,
+      required: true,
+      trim: true,
     },
     // Monto del gasto en EUR
     amount: {
       type: Number,
       required: true,
-      default: 0,
-    },
-    // Descuento aplicado (si existe)
-    discount: {
-      type: Number,
-      default: 0,
-    },
-    // Monto total (amount - discount)
-    totalAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    // Descripción del gasto
-    description: {
-      type: String,
-      trim: true,
-    },
-    // Cantidad de artículos (para destacados)
-    itemCount: {
-      type: Number,
       default: 0,
     },
     // Fecha del gasto
@@ -71,15 +61,15 @@ const expenseSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    // ID del mensaje de Gmail (para evitar duplicados)
-    gmailMessageId: {
-      type: String,
-      required: true,
-      index: true,
-    },
     // Snippet del correo para referencia
     snippet: {
       type: String,
+    },
+    // Si fue añadido manualmente
+    isManual: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   {
@@ -88,8 +78,8 @@ const expenseSchema = new mongoose.Schema(
   }
 );
 
-// Índice compuesto para evitar duplicados por usuario y mensaje
-expenseSchema.index({ userId: 1, gmailMessageId: 1 }, { unique: true });
+// Índice compuesto para búsquedas por usuario y emailId
+expenseSchema.index({ userId: 1, emailId: 1 });
 
 // Índice para búsquedas por fecha
 expenseSchema.index({ userId: 1, expenseDate: -1 });
