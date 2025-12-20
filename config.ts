@@ -27,7 +27,7 @@ const config = {
         priceId:
           process.env.NODE_ENV === "development"
             ? "price_1SevlPERxtxjzj6apzk66kd3"  // Development priceId
-            : "price_456",                    // Production priceId
+            : "price_1SevlPERxtxjzj6apzk66kd3",                    // Production priceId
         name: "Starter",
         description: "Perfecto para tu negocio de reventa",
         price: 19.95,
@@ -43,7 +43,7 @@ const config = {
         priceId:
           process.env.NODE_ENV === "development"
             ? "price_1SevlxERxtxjzj6aMyZAZvys"  // Development priceId
-            : "price_456",                    // Production priceId
+            : "price_1SevlxERxtxjzj6aMyZAZvys",                    // Production priceId
         isFeatured: true,
         name: "Advanced",
         description: "Para revendedores que quieren escalar con control total",
@@ -60,7 +60,7 @@ const config = {
       },
     ],
   },
-  
+
   aws: {
     // If you use AWS S3/Cloudfront, put values in here
     bucket: "bucket-name",
