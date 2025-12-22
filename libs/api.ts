@@ -26,13 +26,16 @@ apiClient.interceptors.response.use(
       message = "Pick a plan to use this feature";
     } else {
       message =
-        error?.response?.data?.error || error.message || error.toString();
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error.message ||
+        error.toString();
     }
 
     error.message =
       typeof message === "string" ? message : JSON.stringify(message);
 
-    console.error(error.message);
+    console.error("API Error:", error.message);
 
     // Automatically display errors to the user
     if (error.message) {

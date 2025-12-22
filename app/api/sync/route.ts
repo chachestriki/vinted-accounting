@@ -17,7 +17,7 @@ import {
 } from "@/libs/gmail-api";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 180; // 3 minutos para sincronización completa
+export const maxDuration = 300; // 3 minutos para sincronización completa
 
 // POST - Sincronizar ventas desde Gmail a MongoDB
 export async function POST(req: NextRequest) {

@@ -115,11 +115,12 @@ export default function Dashboard() {
       setExpensesData(expensesRes as unknown as ExpensesData);
     } catch (err: any) {
       console.error("Error fetching dashboard data:", err);
-      setError(
+      const errorMessage =
         err?.response?.data?.error ||
+        err?.response?.data?.message ||
         err?.message ||
-        "Error al cargar los datos"
-      );
+        "Error al cargar los datos";
+      setError(typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setLoading(false);
     }
@@ -138,11 +139,12 @@ export default function Dashboard() {
       await fetchDashboardData();
     } catch (err: any) {
       console.error("Error syncing:", err);
-      setError(
+      const errorMessage =
         err?.response?.data?.error ||
+        err?.response?.data?.message ||
         err?.message ||
-        "Error al sincronizar"
-      );
+        "Error al sincronizar";
+      setError(typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setSyncing(false);
     }
