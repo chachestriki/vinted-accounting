@@ -328,6 +328,13 @@ export default function SalesPage() {
 
       if (!response.ok) {
         const error = await response.json();
+
+        // Check if it's a token expiration error
+        if (error.code === "TOKEN_EXPIRED" || response.status === 401) {
+          alert("Tu sesión de Gmail ha expirado. Por favor, cierra sesión y vuelve a iniciar sesión para reconectar tu cuenta.");
+          return;
+        }
+
         throw new Error(error.error || "Error al descargar las etiquetas");
       }
 

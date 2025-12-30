@@ -80,7 +80,19 @@ export async function GET(req: NextRequest) {
           { status: 403 }
         );
       }
-      accessToken = await refreshAccessToken(session.refreshToken);
+
+      try {
+        accessToken = await refreshAccessToken(session.refreshToken);
+      } catch (refreshError: any) {
+        console.error("Token refresh failed:", refreshError);
+        return NextResponse.json(
+          {
+            error: "Your Gmail access has expired. Please sign out and sign in again to reconnect your account.",
+            code: "TOKEN_EXPIRED"
+          },
+          { status: 401 }
+        );
+      }
     }
 
     // Get Gmail client
@@ -224,7 +236,19 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      accessToken = await refreshAccessToken(session.refreshToken);
+
+      try {
+        accessToken = await refreshAccessToken(session.refreshToken);
+      } catch (refreshError: any) {
+        console.error("Token refresh failed:", refreshError);
+        return NextResponse.json(
+          {
+            error: "Your Gmail access has expired. Please sign out and sign in again to reconnect your account.",
+            code: "TOKEN_EXPIRED"
+          },
+          { status: 401 }
+        );
+      }
     }
 
     const oauth2Client = new OAuth2Client(
@@ -234,10 +258,8 @@ export async function POST(req: NextRequest) {
     oauth2Client.setCredentials({ access_token: accessToken });
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    // Get all labels
-    const labels: Array<{ saleId: string; filename: string; data: string }> = [];
-
-    for (const sale of sales) {
+    // Get all labels in parallel for better performance
+    const labelPromises = sales.map(async (sale) => {
       try {
         const response = await gmail.users.messages.get({
           userId: "me",
@@ -275,17 +297,22 @@ export async function POST(req: NextRequest) {
           });
 
           if (attachmentResponse.data.data) {
-            labels.push({
+            return {
               saleId: sale._id.toString(),
               filename,
               data: attachmentResponse.data.data,
-            });
+            };
           }
         }
+        return null;
       } catch (err) {
         console.error(`Error getting label for sale ${sale._id}:`, err);
+        return null;
       }
-    }
+    });
+
+    const labelResults = await Promise.all(labelPromises);
+    const labels = labelResults.filter((label): label is { saleId: string; filename: string; data: string } => label !== null);
 
     if (labels.length === 0) {
       return NextResponse.json(
@@ -302,10 +329,10 @@ export async function POST(req: NextRequest) {
         // Convertir base64url a base64 y luego a buffer
         const base64 = label.data.replace(/-/g, "+").replace(/_/g, "/");
         const pdfBytes = Buffer.from(base64, "base64");
-        
+
         // Cargar el PDF
         const pdf = await PDFDocument.load(pdfBytes);
-        
+
         // Copiar todas las páginas al PDF combinado
         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
         pages.forEach((page) => mergedPdf.addPage(page));
