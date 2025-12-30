@@ -23,7 +23,8 @@ const dateRanges: { value: DateRange; label: string }[] = [
   { value: "thisMonth", label: "Este Mes" },
   { value: "last3months", label: "Últimos 3 Meses" },
   { value: "thisYear", label: "Este Año" },
-  { value: "allTime", label: "Todo" }
+  { value: "allTime", label: "Todo" },
+  { value: "custom", label: "Personalizado" }
 ];
 
 const DateFilter = ({ selectedRange, onRangeChange }: DateFilterProps) => {
@@ -33,11 +34,10 @@ const DateFilter = ({ selectedRange, onRangeChange }: DateFilterProps) => {
         <button
           key={range.value}
           onClick={() => onRangeChange(range.value)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-            selectedRange === range.value
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${selectedRange === range.value
               ? "bg-gray-900 text-white"
               : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-          }`}
+            }`}
         >
           {range.label}
         </button>

@@ -355,27 +355,11 @@ export default function InventoryPage() {
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                   >
                     <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() =>
-                            setExpandedBundle(
-                              expandedBundle === bundle._id ? null : bundle._id
-                            )
-                          }
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          {expandedBundle === bundle._id ? (
-                            <ChevronUp className="w-4 h-4 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
-                          )}
-                        </button>
-                        <div>
-                          <p className="font-medium text-gray-900">{bundle.name}</p>
-                          <p className="text-xs text-gray-400">
-                            {bundle.salesLinked} ventas vinculadas
-                          </p>
-                        </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{bundle.name}</p>
+                        <p className="text-xs text-gray-400">
+                          {bundle.salesLinked} ventas vinculadas
+                        </p>
                       </div>
                     </td>
                     <td className="p-4 text-gray-600">{bundle.provider}</td>

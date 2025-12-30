@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import MetricCard from "@/components/MetricCard";
 import DateFilter, { type DateRange } from "@/components/DateFilter";
+import SalesChart from "@/components/SalesChart";
 import apiClient from "@/libs/api";
 
 interface SaleStats {
@@ -43,6 +44,7 @@ interface SalesMetrics {
   gananciaBruta: number;
   gananciaNeta: number;
   gastosTotal: number;
+  gastosOperativos: number;
   roi: number;
   articulosVendidos: number;
   valorPromedioOrden: number;
@@ -77,7 +79,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange>("last3months");
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange>("thisMonth");
   const [lastSync, setLastSync] = useState<string | null>(null);
 
 
@@ -237,6 +239,7 @@ export default function Dashboard() {
         gananciaBruta: 0,
         gananciaNeta: 0,
         gastosTotal: 0,
+        gastosOperativos: 0,
         roi: 0,
         articulosVendidos: 0,
         valorPromedioOrden: 0,
@@ -275,6 +278,7 @@ export default function Dashboard() {
       gananciaBruta,
       gananciaNeta,
       gastosTotal, // Esto ahora incluye coste de producto + gastos operativos
+      gastosOperativos, // Solo gastos de Vinted (armario + destacado)
       roi,
       articulosVendidos,
       valorPromedioOrden,
@@ -317,6 +321,61 @@ export default function Dashboard() {
 
   const metrics = calculateMetrics();
   const insights = calculateInsights();
+
+  // Calculate chart data for sales per day
+  const calculateSalesPerDay = () => {
+    if (!filteredSales.length) return [];
+
+    // Group sales by date with timestamp for proper sorting
+    const salesByDate: { [key: string]: { value: number; timestamp: number } } = {};
+
+    filteredSales.forEach((sale) => {
+      const saleDate = new Date(sale.saleDate);
+      const dateKey = saleDate.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+      });
+
+      if (!salesByDate[dateKey]) {
+        salesByDate[dateKey] = { value: 0, timestamp: saleDate.getTime() };
+      }
+      salesByDate[dateKey].value += 1;
+    });
+
+    return Object.entries(salesByDate)
+      .map(([date, data]) => ({ date, value: data.value, timestamp: data.timestamp }))
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map(({ date, value }) => ({ date, value }));
+  };
+
+  // Calculate chart data for revenue per day
+  const calculateRevenuePerDay = () => {
+    if (!completedSales.length) return [];
+
+    // Group revenue by date with timestamp for proper sorting
+    const revenueByDate: { [key: string]: { value: number; timestamp: number } } = {};
+
+    completedSales.forEach((sale) => {
+      const saleDate = new Date(sale.completedDate || sale.saleDate);
+      const dateKey = saleDate.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+      });
+
+      if (!revenueByDate[dateKey]) {
+        revenueByDate[dateKey] = { value: 0, timestamp: saleDate.getTime() };
+      }
+      revenueByDate[dateKey].value += (sale.amount || 0);
+    });
+
+    return Object.entries(revenueByDate)
+      .map(([date, data]) => ({ date, value: data.value, timestamp: data.timestamp }))
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map(({ date, value }) => ({ date, value }));
+  };
+
+  const salesPerDayData = calculateSalesPerDay();
+  const revenuePerDayData = calculateRevenuePerDay();
 
   const exportToCSV = () => {
     if (!completedSales.length) return;
@@ -561,8 +620,31 @@ export default function Dashboard() {
                 value={formatCurrency(metrics.valorPromedioOrden)}
                 tooltip="Promedio de venta por artículo"
               />
+              <MetricCard
+                title="Gastos"
+                value={formatCurrency(metrics.gastosOperativos)}
+                valueColor="error"
+                tooltip="Gastos operativos de Vinted (armario + destacados)"
+              />
             </div>
 
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <SalesChart
+                data={salesPerDayData}
+                title="Ventas por Día"
+                valueLabel="Ventas"
+                color="#3b82f6"
+                formatValue={(value) => value.toString()}
+              />
+              <SalesChart
+                data={revenuePerDayData}
+                title="Ingresos por Día"
+                valueLabel="Ingresos"
+                color="#10b981"
+                formatValue={formatCurrency}
+              />
+            </div>
 
             {/* Quick Stats */}
             {salesData && (

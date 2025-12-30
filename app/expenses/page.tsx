@@ -43,7 +43,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedDateRange, setSelectedDateRange] = useState<DateRange>("allTime");
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange>("thisMonth");
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
