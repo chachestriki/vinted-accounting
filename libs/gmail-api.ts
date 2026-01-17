@@ -100,7 +100,7 @@ export async function searchGmailEmails(
 export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    '(from:no-reply@vinted.es OR from:noreply@vinted.es) "Transferencia a tu saldo Vinted"',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Transferencia a tu saldo Vinted" OR "Transferido a tu saldo Vinted")',
     afterDate
   );
 }
@@ -194,10 +194,7 @@ export async function getCompletedSaleDetails(
       return null;
     }
 
-
-
     // Limpiar HTML y CSS del texto antes de procesar
-    // Limpiar HTML/CSS del texto antes de procesar
     let cleanText = text
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
@@ -212,6 +209,12 @@ export async function getCompletedSaleDetails(
       .replace(/[a-z-]+\s*:\s*[^;]+;/gi, " ")
       .replace(/\s+/g, " ")
       .trim();
+
+    // Detectar si es una devolución parcial
+    const isPartialRefund = 
+      /Importe del reembolso/i.test(cleanText) || 
+      /importe del reembolso/i.test(text) ||
+      /reembolso parcial/i.test(cleanText);
 
     let itemName = "Artículo desconocido";
 
@@ -269,6 +272,11 @@ export async function getCompletedSaleDetails(
           itemName = cleanItemName(fallbackName);
         }
       }
+    }
+
+    // Si es una devolución parcial y no se encontró el nombre del artículo, usar "Devolución parcial"
+    if (isPartialRefund && itemName === "Artículo desconocido") {
+      itemName = "Devolución parcial";
     }
 
     // Extract transaction ID - usar messageId como fallback si no se encuentra

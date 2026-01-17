@@ -28,12 +28,12 @@ export function parseTransactionId(text: string): string | null {
  * Busca específicamente el monto de "Transferencia a tu saldo Vinted"
  */
 export function parseVintedAmount(text: string): number | null {
-  // Primero buscar específicamente "Transferencia a tu saldo Vinted" seguido del monto
-  const transferRegex = /Transferencia a tu saldo Vinted[\s\S]*?([\d.,]+)\s*(€|EUR)/i;
+  // Primero buscar específicamente "Transferencia/Transferido a tu saldo Vinted" seguido del monto
+  const transferRegex = /(Transferencia|Transferido) a tu saldo Vinted[\s\S]*?([\d.,]+)\s*(€|EUR)/i;
   const transferMatch = text.match(transferRegex);
 
   if (transferMatch) {
-    const amountStr = transferMatch[1];
+    const amountStr = transferMatch[2];
     const normalized = amountStr.replace(/\./g, "").replace(",", ".");
     const amount = parseFloat(normalized);
     if (!isNaN(amount)) {
