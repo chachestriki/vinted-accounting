@@ -224,10 +224,35 @@ export default function Dashboard() {
         return items;
     }
 
-    return items.filter((item) => new Date(item[dateField]) >= startDate);
+    return items.filter((item) => {
+      const dateValue = item[dateField];
+      if (!dateValue) return false; // Excluir items sin fecha
+      return new Date(dateValue) >= startDate;
+    });
   };
 
-  const filteredSales = salesData ? filterByDateRange(salesData.sales, 'saleDate') : [];
+  // Filtrar ventas por la fecha correcta según su estado
+  const filteredSales = salesData ? (() => {
+    if (!salesData.sales) return [];
+    
+    // Separar ventas pendientes y completadas para filtrar por fechas diferentes
+    const pending = salesData.sales.filter(s => s.status === "pending");
+    const completed = salesData.sales.filter(s => s.status === "completed");
+    
+    // Filtrar pendientes por saleDate (fecha de creación de etiqueta)
+    const filteredPending = filterByDateRange(pending, 'saleDate');
+    
+    // Filtrar completadas por completedDate (fecha de transferencia/ingreso)
+    // Si no tienen completedDate, usar saleDate como fallback
+    const completedWithDate = completed.map(sale => ({
+      ...sale,
+      _filterDate: sale.completedDate || sale.saleDate
+    }));
+    const filteredCompleted = filterByDateRange(completedWithDate, '_filterDate');
+    
+    return [...filteredPending, ...filteredCompleted];
+  })() : [];
+  
   const completedSales = filteredSales.filter(s => s.status === "completed");
 
   const filteredExpenses = expensesData ? filterByDateRange(expensesData.expenses, 'expenseDate') : [];

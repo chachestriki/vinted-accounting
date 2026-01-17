@@ -17,6 +17,8 @@ export const authOptions = {
         params: {
           scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
           access_type: "offline",
+          // 'consent' is needed to always get refresh_token (important for Gmail API)
+          // Google will only show consent screen on first login or if permissions changed
           prompt: "consent",
         },
       },
@@ -55,13 +57,51 @@ export const authOptions = {
 
   callbacks: {
     async jwt({ token, account, user }: any) {
-      // Store access token and refresh token on initial sign in
+      // Initial sign in - Store tokens
       if (account && user) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.accessTokenExpires = account.expires_at * 1000; // Convert to milliseconds
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          accessTokenExpires: account.expires_at * 1000, // Convert to milliseconds
+        };
       }
-      return token;
+
+      // Return previous token if the access token has not expired yet
+      if (Date.now() < token.accessTokenExpires - 5 * 60 * 1000) { // Refresh 5 min before expiry
+        return token;
+      }
+
+      // Access token has expired, try to refresh it
+      try {
+        const { OAuth2Client } = await import("google-auth-library");
+        
+        const oauth2Client = new OAuth2Client(
+          process.env.GOOGLE_ID,
+          process.env.GOOGLE_SECRET
+        );
+
+        oauth2Client.setCredentials({
+          refresh_token: token.refreshToken,
+        });
+
+        const { credentials } = await oauth2Client.refreshAccessToken();
+
+        return {
+          ...token,
+          accessToken: credentials.access_token,
+          accessTokenExpires: credentials.expiry_date || Date.now() + 3600 * 1000,
+          // Refresh token is usually returned only once, keep the old one
+          refreshToken: credentials.refresh_token ?? token.refreshToken,
+        };
+      } catch (error) {
+        console.error("Error refreshing access token:", error);
+        // Return the old token with an error flag
+        return {
+          ...token,
+          error: "RefreshAccessTokenError",
+        };
+      }
     },
     session: async ({ session, token }: any) => {
       if (session?.user) {
@@ -70,6 +110,7 @@ export const authOptions = {
         session.accessToken = token.accessToken;
         session.refreshToken = token.refreshToken;
         session.accessTokenExpires = token.accessTokenExpires;
+        session.error = token.error;
       }
       return session;
     },

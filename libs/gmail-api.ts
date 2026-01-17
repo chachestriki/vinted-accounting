@@ -72,6 +72,7 @@ export async function searchGmailEmails(
         q: finalQuery,
         maxResults: 500,
         pageToken: nextPageToken,
+        includeSpamTrash: true, // ✅ Incluir spam y papelera
       });
 
       const messages = response.data.messages || [];
@@ -99,7 +100,7 @@ export async function searchGmailEmails(
 export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es "Transferencia a tu saldo Vinted"',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) "Transferencia a tu saldo Vinted"',
     afterDate
   );
 }
@@ -110,7 +111,7 @@ export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): 
 export async function searchVintedPendingSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es "Etiqueta de envío para"',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) "Etiqueta de envío para"',
     afterDate
   );
 }
@@ -148,6 +149,20 @@ export interface ExpenseDetails {
   amount: number;
   date: string;
   snippet: string;
+}
+
+/**
+ * Clean item name by removing quotes and extra whitespace
+ */
+function cleanItemName(name: string): string {
+  return name
+    // Eliminar comillas normales, tipográficas y especiales
+    .replace(/^["'""'"']+|["'""'"']+$/g, '')
+    // Limpiar comillas en medio del texto (solo al inicio/final de palabras)
+    .replace(/\s+["'""'"']+\s+/g, ' ')
+    // Limpiar espacios múltiples
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -231,7 +246,7 @@ export async function getCompletedSaleDetails(
         candidate.match(/^[a-z-]+:\s*[^;]+$/i);
 
       if (!isInvalid) {
-        itemName = candidate;
+        itemName = cleanItemName(candidate);
         break;
       }
     }
@@ -251,7 +266,7 @@ export async function getCompletedSaleDetails(
           fallbackName.match(/^[a-z-]+:\s*[^;]+$/i);
 
         if (!isInvalid) {
-          itemName = fallbackName;
+          itemName = cleanItemName(fallbackName);
         }
       }
     }
@@ -302,11 +317,11 @@ export async function getPendingSaleDetails(
     let itemName = "Artículo desconocido";
     const subjectMatch = subject.match(/Etiqueta de envío para ([^.]+)/);
     if (subjectMatch) {
-      itemName = subjectMatch[1].trim();
+      itemName = cleanItemName(subjectMatch[1].trim());
     } else {
       const bodyMatch = text.match(/Pedido:\s*([^\n|]+)/);
       if (bodyMatch) {
-        itemName = bodyMatch[1].trim();
+        itemName = cleanItemName(bodyMatch[1].trim());
       }
     }
 
@@ -482,7 +497,7 @@ export async function processEmailsBatch<T>(
 export async function searchVintedExpenses(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    'from:no-reply@vinted.es ("Tu factura" OR "destacado" OR "armario")',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Tu factura" OR "destacado" OR "armario")',
     afterDate
   );
 }
