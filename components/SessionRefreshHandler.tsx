@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
  * Component to handle session refresh errors
  * If the refresh token fails, it will sign out the user and show a message
  */
-export default function SessionRefreshHandler() {
+export default function SessionRefreshHandler(): null {
   const { data: session } = useSession();
 
   useEffect(() => {
