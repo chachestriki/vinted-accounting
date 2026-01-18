@@ -9,25 +9,17 @@ export const dynamic = "force-dynamic";
 // GET - Obtener todas las ventas del usuario desde MongoDB (SIN LÍMITE)
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const { verifyUserAccess } = await import("@/libs/auth-helpers");
+    const authResult = await verifyUserAccess();
 
-    if (!session?.user?.email) {
+    if ("error" in authResult) {
       return NextResponse.json(
-        { error: "Unauthorized - Please sign in" },
-        { status: 401 }
+        { error: authResult.error },
+        { status: authResult.status }
       );
     }
 
-    await connectMongo();
-
-    // Buscar usuario
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+    const { user } = authResult;
 
     // Obtener parámetros de consulta
     const { searchParams } = new URL(req.url);

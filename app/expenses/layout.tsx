@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/libs/next-auth";
 import config from "@/config";
 import Sidebar from "@/components/Sidebar";
+import connectMongo from "@/libs/mongoose";
+import User from "@/models/User";
 
-// This is a server-side component to ensure the user is logged in.
-// If not, it will redirect to the login page.
+// This is a server-side component to ensure the user is logged in AND has paid.
+// If not logged in, it will redirect to the login page.
+// If logged in but hasn't paid, it will redirect to pricing page.
 export default async function ExpensesLayout({
   children,
 }: {
@@ -15,6 +18,14 @@ export default async function ExpensesLayout({
 
   if (!session) {
     redirect(config.auth.loginUrl);
+  }
+
+  // Check if user has paid access
+  await connectMongo();
+  const user = await User.findOne({ email: session.user?.email });
+
+  if (!user?.hasAccess) {
+    redirect("/#pricing");
   }
 
   return (
