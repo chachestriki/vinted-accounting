@@ -322,28 +322,28 @@ export default function InventoryPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">
+                  <th className="text-left p-2 md:p-4 text-sm font-medium text-gray-500">
                     Bundle
                   </th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">
+                  <th className="hidden md:table-cell text-left p-4 text-sm font-medium text-gray-500">
                     Proveedor
                   </th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">
+                  <th className="hidden lg:table-cell text-right p-4 text-sm font-medium text-gray-500">
                     Inversión
                   </th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">
+                  <th className="text-right p-2 md:p-4 text-sm font-medium text-gray-500">
                     Prendas
                   </th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">
+                  <th className="hidden xl:table-cell text-right p-4 text-sm font-medium text-gray-500">
                     €/Prenda
                   </th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">
+                  <th className="hidden xl:table-cell text-right p-4 text-sm font-medium text-gray-500">
                     Retorno
                   </th>
-                  <th className="text-center p-4 text-sm font-medium text-gray-500">
+                  <th className="hidden lg:table-cell text-center p-4 text-sm font-medium text-gray-500">
                     ROI
                   </th>
-                  <th className="text-center p-4 text-sm font-medium text-gray-500">
+                  <th className="text-center p-2 md:p-4 text-sm font-medium text-gray-500">
                     Acciones
                   </th>
                 </tr>
@@ -354,29 +354,30 @@ export default function InventoryPage() {
                     key={bundle._id}
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="p-4">
+                    <td className="p-2 md:p-4">
                       <div>
-                        <p className="font-medium text-gray-900">{bundle.name}</p>
+                        <p className="font-medium text-gray-900 text-sm md:text-base">{bundle.name}</p>
                         <p className="text-xs text-gray-400">
-                          {bundle.salesLinked} ventas vinculadas
+                          {bundle.salesLinked} ventas
                         </p>
+                        <p className="text-xs text-gray-500 md:hidden mt-1">{bundle.provider}</p>
                       </div>
                     </td>
-                    <td className="p-4 text-gray-600">{bundle.provider}</td>
-                    <td className="p-4 text-right font-medium text-gray-900">
+                    <td className="hidden md:table-cell p-4 text-gray-600">{bundle.provider}</td>
+                    <td className="hidden lg:table-cell p-4 text-right font-medium text-gray-900">
                       {formatCurrency(bundle.price)}
                     </td>
-                    <td className="p-4 text-right">
-                      <span className="text-gray-900">{bundle.quantity}</span>
-                      <span className="text-gray-400"> / {bundle.initialQuantity}</span>
+                    <td className="p-2 md:p-4 text-right">
+                      <span className="text-gray-900 font-medium">{bundle.quantity}</span>
+                      <span className="text-gray-400 text-sm"> / {bundle.initialQuantity}</span>
                     </td>
-                    <td className="p-4 text-right text-gray-600">
+                    <td className="hidden xl:table-cell p-4 text-right text-gray-600">
                       {formatCurrency(bundle.costPerItem ?? (bundle.initialQuantity > 0 ? bundle.price / bundle.initialQuantity : 0))}
                     </td>
-                    <td className="p-4 text-right font-medium text-emerald-600">
+                    <td className="hidden xl:table-cell p-4 text-right font-medium text-emerald-600">
                       {formatCurrency(bundle.returnRate)}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="hidden lg:table-cell p-4 text-center">
                       {(() => {
                         const roi = bundle.roiMultiplier ?? (bundle.price > 0 ? bundle.returnRate / bundle.price : 0);
                         return (
@@ -388,7 +389,7 @@ export default function InventoryPage() {
                         );
                       })()}
                     </td>
-                    <td className="p-4">
+                    <td className="p-2 md:p-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => openEditModal(bundle)}

@@ -491,7 +491,7 @@ export default function SalesPage() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">
                             <input
                               type="checkbox"
                               className="checkbox checkbox-sm"
@@ -499,17 +499,17 @@ export default function SalesPage() {
                               onChange={() => toggleSelectAll(pendingSales)}
                             />
                           </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Fecha</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Artículo</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Envío</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Límite</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Etiqueta</th>
+                          <th className="hidden md:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Fecha</th>
+                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Artículo</th>
+                          <th className="hidden lg:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Envío</th>
+                          <th className="hidden lg:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Límite</th>
+                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Etiqueta</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pendingSales.map((sale) => (
                           <tr key={sale._id} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-2 md:px-4">
                               <input
                                 type="checkbox"
                                 className="checkbox checkbox-sm"
@@ -518,30 +518,31 @@ export default function SalesPage() {
                                 onChange={() => toggleSelect(sale._id)}
                               />
                             </td>
-                            <td className="py-3 px-4 text-sm text-gray-600">{formatDate(sale.saleDate)}</td>
-                            <td className="py-3 px-4">
+                            <td className="hidden md:table-cell py-3 px-4 text-sm text-gray-600">{formatDate(sale.saleDate)}</td>
+                            <td className="py-3 px-2 md:px-4">
                               <div className="max-w-xs">
                                 <p className="text-sm font-medium text-gray-900 truncate">{sale.itemName}</p>
                                 <p className="text-xs text-gray-400">#{sale.transactionId}</p>
+                                <p className="text-xs text-gray-500 md:hidden mt-1">{formatDate(sale.saleDate)}</p>
                               </div>
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="hidden lg:table-cell py-3 px-4">
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${carrierColors[sale.shippingCarrier] || carrierColors.unknown}`}>
                                 <Truck className="w-3 h-3" />
                                 {carrierNames[sale.shippingCarrier] || sale.shippingCarrier}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-sm">{sale.shippingDeadline ? formatDeadline(sale.shippingDeadline) : "-"}</td>
-                            <td className="py-3 px-4">
+                            <td className="hidden lg:table-cell py-3 px-4 text-sm">{sale.shippingDeadline ? formatDeadline(sale.shippingDeadline) : "-"}</td>
+                            <td className="py-3 px-2 md:px-4">
                               <div className="flex items-center gap-2">
                                 {sale.hasLabel && (
                                   <button
                                     onClick={() => downloadLabel(sale._id)}
                                     disabled={downloadingLabel === sale._id}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 disabled:opacity-50"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
-                                    Descargar
+                                    <span className="hidden sm:inline">Descargar</span>
                                   </button>
                                 )}
                               </div>
@@ -596,14 +597,14 @@ export default function SalesPage() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-100 bg-gray-50">
-                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Fecha</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Artículo</th>
-                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Coste</th>
-                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Precio Venta</th>
-                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Ganancia</th>
-                            <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">ROI</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Lote</th>
-                            <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Acciones</th>
+                            <th className="hidden md:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Fecha</th>
+                            <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Artículo</th>
+                            <th className="hidden lg:table-cell text-right py-3 px-4 text-sm font-medium text-gray-500">Coste</th>
+                            <th className="text-right py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Precio</th>
+                            <th className="hidden lg:table-cell text-right py-3 px-4 text-sm font-medium text-gray-500">Ganancia</th>
+                            <th className="hidden xl:table-cell text-right py-3 px-4 text-sm font-medium text-gray-500">ROI</th>
+                            <th className="hidden xl:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Lote</th>
+                            <th className="text-center py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -612,22 +613,23 @@ export default function SalesPage() {
                             const hasCost = sale.purchasePrice && sale.purchasePrice > 0;
                             return (
                               <tr key={sale._id} className="border-b border-gray-50 hover:bg-gray-50">
-                                <td className="py-3 px-4 text-sm text-gray-600">{formatDate(sale.completedDate || sale.saleDate)}</td>
-                                <td className="py-3 px-4">
+                                <td className="hidden md:table-cell py-3 px-4 text-sm text-gray-600">{formatDate(sale.completedDate || sale.saleDate)}</td>
+                                <td className="py-3 px-2 md:px-4">
                                   <div className="max-w-xs">
                                     <p className="text-sm font-medium text-gray-900 truncate">{sale.itemName}</p>
                                     <p className="text-xs text-gray-400">#{sale.transactionId}</p>
+                                    <p className="text-xs text-gray-500 md:hidden mt-1">{formatDate(sale.completedDate || sale.saleDate)}</p>
                                   </div>
                                 </td>
-                                <td className="py-3 px-4 text-sm text-gray-500 text-right">{hasCost ? formatCurrency(sale.purchasePrice!) : "-"}</td>
-                                <td className="py-3 px-4 text-sm font-semibold text-gray-900 text-right">{formatCurrency(sale.amount || 0)}</td>
-                                <td className={`py-3 px-4 text-sm font-semibold text-right ${!hasCost ? 'text-gray-400' : profit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <td className="hidden lg:table-cell py-3 px-4 text-sm text-gray-500 text-right">{hasCost ? formatCurrency(sale.purchasePrice!) : "-"}</td>
+                                <td className="py-3 px-2 md:px-4 text-sm font-semibold text-gray-900 text-right">{formatCurrency(sale.amount || 0)}</td>
+                                <td className={`hidden lg:table-cell py-3 px-4 text-sm font-semibold text-right ${!hasCost ? 'text-gray-400' : profit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                   {hasCost ? formatCurrency(profit) : "-"}
                                 </td>
-                                <td className="py-3 px-4 text-sm text-right text-indigo-600 font-medium">
+                                <td className="hidden xl:table-cell py-3 px-4 text-sm text-right text-indigo-600 font-medium">
                                   {hasCost ? `${((sale.amount || 0) / sale.purchasePrice!).toFixed(2)}x` : "-"}
                                 </td>
-                                <td className="py-3 px-4">
+                                <td className="hidden xl:table-cell py-3 px-4">
                                   <select
                                     value={sale.bundleId || ""}
                                     onChange={(e) => linkSaleToBundle(sale._id, e.target.value || null)}
@@ -644,7 +646,7 @@ export default function SalesPage() {
                                       ))}
                                   </select>
                                 </td>
-                                <td className="py-3 px-4 text-center">
+                                <td className="py-3 px-2 md:px-4 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <button onClick={() => openEditModal(sale)} className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"><Edit className="w-4 h-4" /></button>
                                     <button onClick={() => deleteSale(sale._id)} disabled={deletingSale === sale._id} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>

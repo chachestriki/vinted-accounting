@@ -13,6 +13,8 @@ export const viewport: Viewport = {
 	themeColor: config.colors.main,
 	width: "device-width",
 	initialScale: 1,
+	maximumScale: 1,
+	userScalable: false,
 };
 
 // This adds default SEO tags to all pages in our app.

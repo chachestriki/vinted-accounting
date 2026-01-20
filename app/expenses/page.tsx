@@ -507,19 +507,19 @@ export default function ExpensesPage() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="hidden md:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">
                             Fecha
                           </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">
                             Descripción
                           </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="hidden lg:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">
                             Tipo
                           </th>
-                          <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="text-right py-3 px-2 md:px-4 text-sm font-medium text-gray-500">
                             Monto
                           </th>
-                          <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">
+                          <th className="text-center py-3 px-2 md:px-4 text-sm font-medium text-gray-500">
                             Acciones
                           </th>
                         </tr>
@@ -530,18 +530,19 @@ export default function ExpensesPage() {
                             key={expense._id}
                             className="border-b border-gray-50 hover:bg-gray-50"
                           >
-                            <td className="py-3 px-4 text-sm text-gray-600">
+                            <td className="hidden md:table-cell py-3 px-4 text-sm text-gray-600">
                               {formatDate(expense.expenseDate)}
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-2 md:px-4">
                               <p className="text-sm font-medium text-gray-900">
                                 {expense.description}
                                 {expense.isManual && (
                                   <span className="ml-2 text-xs text-gray-400">(Manual)</span>
                                 )}
                               </p>
+                              <p className="text-xs text-gray-500 md:hidden mt-1">{formatDate(expense.expenseDate)}</p>
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="hidden lg:table-cell py-3 px-4">
                               <span
                                 className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${expense.type === "armario"
                                   ? "bg-blue-100 text-blue-800"
@@ -551,10 +552,10 @@ export default function ExpensesPage() {
                                 {expense.type === "armario" ? "Armario" : "Destacado"}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-sm font-semibold text-red-600 text-right">
+                            <td className="py-3 px-2 md:px-4 text-sm font-semibold text-red-600 text-right">
                               {formatCurrency(expense.amount)}
                             </td>
-                            <td className="py-3 px-4">
+                            <td className="py-3 px-2 md:px-4">
                               {expense.isManual ? (
                                 <div className="flex items-center justify-center gap-2">
                                   <button
