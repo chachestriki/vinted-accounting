@@ -501,9 +501,9 @@ export default function SalesPage() {
                           </th>
                           <th className="hidden md:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Fecha</th>
                           <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Artículo</th>
-                          <th className="hidden lg:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Envío</th>
+                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Envío</th>
                           <th className="hidden lg:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Límite</th>
-                          <th className="text-left py-3 px-2 md:px-4 text-sm font-medium text-gray-500">Etiqueta</th>
+                          <th className="hidden md:table-cell text-left py-3 px-4 text-sm font-medium text-gray-500">Etiqueta</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -526,20 +526,20 @@ export default function SalesPage() {
                                 <p className="text-xs text-gray-500 md:hidden mt-1">{formatDate(sale.saleDate)}</p>
                               </div>
                             </td>
-                            <td className="hidden lg:table-cell py-3 px-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${carrierColors[sale.shippingCarrier] || carrierColors.unknown}`}>
+                            <td className="py-3 px-2 md:px-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2 md:px-2.5 py-1 rounded-full text-xs font-medium ${carrierColors[sale.shippingCarrier] || carrierColors.unknown}`}>
                                 <Truck className="w-3 h-3" />
-                                {carrierNames[sale.shippingCarrier] || sale.shippingCarrier}
+                                <span className="hidden sm:inline">{carrierNames[sale.shippingCarrier] || sale.shippingCarrier}</span>
                               </span>
                             </td>
                             <td className="hidden lg:table-cell py-3 px-4 text-sm">{sale.shippingDeadline ? formatDeadline(sale.shippingDeadline) : "-"}</td>
-                            <td className="py-3 px-2 md:px-4">
+                            <td className="hidden md:table-cell py-3 px-4">
                               <div className="flex items-center gap-2">
                                 {sale.hasLabel && (
                                   <button
                                     onClick={() => downloadLabel(sale._id)}
                                     disabled={downloadingLabel === sale._id}
-                                    className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 disabled:opacity-50"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 disabled:opacity-50"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">Descargar</span>
