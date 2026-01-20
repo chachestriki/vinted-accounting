@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +13,8 @@ import {
   Package,
   Settings,
   ChevronDown,
+  Menu,
+  X,
 } from "lucide-react";
 import { Popover, Transition } from "@headlessui/react";
 
@@ -32,6 +34,7 @@ const navItems: NavItem[] = [
 const Sidebar = () => {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -44,8 +47,40 @@ const Sidebar = () => {
     signOut({ callbackUrl: "/" });
   };
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="fixed left-0 top-0 h-screen w-64 bg-base-100 border-r border-base-300 flex flex-col z-40">
+    <>
+      {/* Mobile Menu Button - Fixed at top */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-base-100 rounded-lg shadow-lg border border-base-300"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
+      </button>
+
+      {/* Backdrop for mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={closeMobileMenu}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed left-0 top-0 h-screen w-64 bg-base-100 border-r border-base-300 flex flex-col z-40
+        transition-transform duration-300 ease-in-out
+        lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-base-300">
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -63,6 +98,7 @@ const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={closeMobileMenu}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${active
                 ? "bg-base-300 font-semibold text-base-content"
                 : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
@@ -79,6 +115,7 @@ const Sidebar = () => {
       <div className="border-t border-base-300 p-4">
         <Link
           href="/settings"
+          onClick={closeMobileMenu}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${pathname === "/settings"
             ? "bg-base-300 font-semibold text-base-content"
             : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
@@ -168,6 +205,7 @@ const Sidebar = () => {
         </Popover>
       </div>
     </div>
+    </>
   );
 };
 
