@@ -11,6 +11,7 @@ import {
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { PDFDocument } from "pdf-lib";
+import { convertBase64UrlPdfTo4x6 } from "@/libs/pdf-processor";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,9 @@ export async function GET(req: NextRequest) {
       }
 
       labelMessageId = sale.labelMessageId;
+      
+      // Guardar el carrier para pasarlo al procesador de PDF
+      var shippingCarrier = sale.shippingCarrier;
     }
 
     let accessToken = session.accessToken;
@@ -154,17 +158,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Convert base64url to base64 and then to buffer
-    const base64 = attachmentData.replace(/-/g, "+").replace(/_/g, "/");
-    const buffer = Buffer.from(base64, "base64");
+    // Convert base64url to base64, then to buffer, and convert to 4x6 inches
+    // Para InPost, se recortará 6x4 y se rotará 90°
+    const convertedBuffer = await convertBase64UrlPdfTo4x6(
+      attachmentData, 
+      undefined, 
+      shippingCarrier as any
+    );
 
     // Return PDF file
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(convertedBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": buffer.length.toString(),
+        "Content-Length": convertedBuffer.length.toString(),
       },
     });
   } catch (error: any) {
@@ -301,6 +309,7 @@ export async function POST(req: NextRequest) {
               saleId: sale._id.toString(),
               filename,
               data: attachmentResponse.data.data,
+              carrier: sale.shippingCarrier,
             };
           }
         }
@@ -312,7 +321,7 @@ export async function POST(req: NextRequest) {
     });
 
     const labelResults = await Promise.all(labelPromises);
-    const labels = labelResults.filter((label): label is { saleId: string; filename: string; data: string } => label !== null);
+    const labels = labelResults.filter(label => label !== null) as Array<{ saleId: string; filename: string; data: string; carrier?: any }>;
 
     if (labels.length === 0) {
       return NextResponse.json(
@@ -321,17 +330,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Concatenar todos los PDFs en uno solo
+    // Concatenar todos los PDFs en uno solo, convirtiéndolos a 4x6 pulgadas
     const mergedPdf = await PDFDocument.create();
 
     for (const label of labels) {
       try {
-        // Convertir base64url a base64 y luego a buffer
-        const base64 = label.data.replace(/-/g, "+").replace(/_/g, "/");
-        const pdfBytes = Buffer.from(base64, "base64");
+        // Convertir base64url a 4x6 pulgadas (InPost se maneja especialmente)
+        const convertedBuffer = await convertBase64UrlPdfTo4x6(
+          label.data,
+          undefined,
+          label.carrier as any
+        );
 
-        // Cargar el PDF
-        const pdf = await PDFDocument.load(pdfBytes);
+        // Cargar el PDF convertido
+        const pdf = await PDFDocument.load(convertedBuffer);
 
         // Copiar todas las páginas al PDF combinado
         const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
