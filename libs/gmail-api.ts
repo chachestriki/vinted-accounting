@@ -100,7 +100,7 @@ export async function searchGmailEmails(
 export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Transferencia a tu saldo Vinted" OR "Transferido a tu saldo Vinted")',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Transferencia a tu saldo Vinted" OR "Transferido a tu saldo Vinted"OR "La transacción se ha completado")',
     afterDate
   );
 }
