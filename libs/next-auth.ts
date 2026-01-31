@@ -61,6 +61,7 @@ export const authOptions = {
       if (account && user) {
         return {
           ...token,
+          sub: user.id, // Required for NextAuth v5 - user identifier
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           accessTokenExpires: account.expires_at * 1000, // Convert to milliseconds
