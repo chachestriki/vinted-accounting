@@ -28,11 +28,15 @@ export type ShippingCarrier = "correos" | "inpost" | "seur" | "vintedgo" | "unkn
  * 
  * COMPORTAMIENTO POR DEFECTO: Recorta 4x6 desde la esquina SUPERIOR IZQUIERDA
  * 
- * CASO ESPECIAL INPOST: Recorta 6x4 HORIZONTAL desde inferior izquierda (sin rotar)
+ * CASOS ESPECIALES POR TRANSPORTISTA:
+ * - INPOST: Recorta 6x4 HORIZONTAL desde inferior izquierda (sin rotar)
+ * - CORREOS: Solo rota 90° en sentido horario, sin recortar ni modificar contenido
+ * - SEUR: Recorta 4x6 desde superior izquierda, desplazado 20 puntos a la derecha y 40 puntos abajo
+ * - VINTEDGO: Recorta 4x6 desde superior izquierda (sin cambios)
  * 
  * @param pdfBuffer - Buffer del PDF original (típicamente A4: 595x842 pts)
  * @param cropRect - Opcional: región específica a recortar. Si no se proporciona, usa default por transportista
- * @param carrier - Opcional: transportista ("inpost" recorta 6x4 y rota a 4x6 vertical)
+ * @param carrier - Opcional: transportista (determina el tipo de recorte y transformaciones)
  * @returns Buffer del PDF recortado a 4x6 vertical
  * 
  * @example
@@ -69,11 +73,34 @@ export async function cropPdfTo4x6(
   
   // CASO ESPECIAL: INPOST requiere 6x4 horizontal que luego se rota 90° a 4x6 vertical
   const isInpost = carrier?.toLowerCase() === 'inpost';
+  const isCorreos = carrier?.toLowerCase() === 'correos';
+  const isSeur = carrier?.toLowerCase() === 'seur';
   
   // Procesar cada página del PDF original
   for (let i = 0; i < srcDoc.getPageCount(); i++) {
     const srcPage = srcDoc.getPage(i);
     const { width: srcWidth, height: srcHeight } = srcPage.getSize();
+    
+    // CORREOS: Solo rotar, sin recortar ni modificar contenido
+    if (isCorreos) {
+      const [embeddedPage] = await destDoc.embedPdf(srcDoc, [i]);
+      
+      // Crear página con las mismas dimensiones del original
+      const page = destDoc.addPage([srcWidth, srcHeight]);
+      
+      // Dibujar la página completa sin modificaciones
+      page.drawPage(embeddedPage, {
+        x: 0,
+        y: 0,
+        width: srcWidth,
+        height: srcHeight,
+      });
+      
+      // Rotar 90° en sentido horario
+      page.setRotation(degrees(-90));
+      
+      continue; // Saltar al siguiente ciclo
+    }
     
     // Determinar cropRect según el transportista
     let rect: CropRect;
@@ -94,6 +121,14 @@ export async function cropPdfTo4x6(
         bottom: bottomMargin,
         right: leftMargin + TARGET_HEIGHT,   // 30 + 432 = 462 pts
         top: bottomMargin + TARGET_WIDTH,    // 50 + 288 = 338 pts
+      };
+    } else if (isSeur) {
+      // SEUR: Recortar 4x6 desde SUPERIOR IZQUIERDA, desplazado 20 puntos a la derecha y 15 puntos abajo
+      rect = {
+        left: 20,  // Mover 20 puntos a la derecha
+        bottom: srcHeight - TARGET_HEIGHT - 40,  // Mover 15 puntos hacia abajo
+        right: 20 + TARGET_WIDTH,
+        top: srcHeight - 40,  // Mover 15 puntos hacia abajo
       };
     } else {
       // DEFAULT: Recortar 4x6 desde SUPERIOR IZQUIERDA
@@ -166,7 +201,7 @@ export async function cropPdfTo4x6(
  * 
  * @param base64urlData - Datos en formato base64url de Gmail
  * @param cropRect - Opcional: región específica a recortar
- * @param carrier - Opcional: transportista ("inpost" recorta 6x4 y rota a 4x6 vertical)
+ * @param carrier - Opcional: transportista (determina el tipo de recorte y transformaciones)
  * @returns Buffer del PDF recortado a 4x6 vertical
  */
 export async function convertBase64UrlPdfTo4x6(
