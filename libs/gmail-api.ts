@@ -60,8 +60,13 @@ export async function searchGmailEmails(
 
     let finalQuery = query;
     if (afterDate) {
-      const seconds = Math.floor(afterDate.getTime() / 1000);
+      // Restar 1 segundo para asegurar que incluimos emails recibidos exactamente en lastSyncAt
+      // Gmail's 'after:' es exclusivo, así que esto hace que sea más inclusivo
+      const seconds = Math.floor(afterDate.getTime() / 1000) - 1;
       finalQuery += ` after:${seconds}`;
+      console.log(`📅 Filtrando desde: ${afterDate.toISOString()} (${seconds} segundos desde epoch)`);
+    } else {
+      console.log(`📅 Sin filtro de fecha (buscando todos los correos)`);
     }
 
     console.log(`🔍 Buscando correos: "${finalQuery}"`);
@@ -100,7 +105,7 @@ export async function searchGmailEmails(
 export async function searchVintedCompletedSales(gmail: any, afterDate?: Date): Promise<string[]> {
   return searchGmailEmails(
     gmail,
-    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Transferencia a tu saldo Vinted" OR "Transferido a tu saldo Vinted"OR "La transacción se ha completado")',
+    '(from:no-reply@vinted.es OR from:noreply@vinted.es) ("Transferencia a tu saldo Vinted" OR "Transferido a tu saldo Vinted" OR "La transacción se ha completado")',
     afterDate
   );
 }
@@ -152,16 +157,20 @@ export interface ExpenseDetails {
 }
 
 /**
- * Clean item name by removing quotes and extra whitespace
+ * Clean item name by removing quotes, commas, and extra whitespace
  */
 function cleanItemName(name: string): string {
   return name
-    // Eliminar comillas normales, tipográficas y especiales
+    // Eliminar comillas normales, tipográficas y especiales al inicio/final
     .replace(/^["'""'"']+|["'""'"']+$/g, '')
+    // Eliminar comas al inicio/final
+    .replace(/^[,，]+|[,，]+$/g, '')
     // Limpiar comillas en medio del texto (solo al inicio/final de palabras)
     .replace(/\s+["'""'"']+\s+/g, ' ')
     // Limpiar espacios múltiples
     .replace(/\s+/g, ' ')
+    // Eliminar espacios y comas al inicio/final (después de todas las otras limpiezas)
+    .replace(/^[\s,，]+|[\s,，]+$/g, '')
     .trim();
 }
 

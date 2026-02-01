@@ -33,8 +33,6 @@ export async function POST(req: NextRequest) {
     // Body might be empty, ignore
   }
 
-  const lastSync = new Date();
-
   try {
     const session = await auth();
     console.log("✅ Sesión obtenida:", session?.user?.email || "No email");
@@ -104,8 +102,16 @@ export async function POST(req: NextRequest) {
     console.log(`📧 Ventas pendientes encontradas: ${pendingMessageIds.length}`);
 
     console.log("🔍 Buscando ventas completadas (transferencias)...");
+    if (lastSyncDate) {
+      console.log(`   📅 Usando filtro de fecha: desde ${lastSyncDate.toISOString()}`);
+    } else {
+      console.log(`   📅 Sin filtro de fecha (buscando todas las ventas completadas)`);
+    }
     const completedMessageIds = await searchVintedCompletedSales(gmail, lastSyncDate);
     console.log(`📧 Ventas completadas encontradas: ${completedMessageIds.length}`);
+    if (completedMessageIds.length > 0) {
+      console.log(`   📋 IDs de mensajes: ${completedMessageIds.slice(0, 5).join(", ")}${completedMessageIds.length > 5 ? "..." : ""}`);
+    }
 
     console.log("📦 Procesando ventas pendientes...");
     const pendingSales = await processEmailsBatch(
@@ -124,6 +130,19 @@ export async function POST(req: NextRequest) {
       15
     );
     console.log(`✅ Ventas completadas procesadas: ${completedSales.length} de ${completedMessageIds.length}`);
+    if (completedSales.length < completedMessageIds.length) {
+      console.warn(`⚠️ Algunas ventas completadas no se pudieron procesar: ${completedMessageIds.length - completedSales.length} de ${completedMessageIds.length}`);
+    }
+    // Log detalles de las primeras ventas procesadas para debugging
+    if (completedSales.length > 0) {
+      console.log(`   📊 Ejemplo de venta procesada:`, {
+        messageId: completedSales[0].messageId,
+        transactionId: completedSales[0].transactionId,
+        itemName: completedSales[0].itemName,
+        amount: completedSales[0].amount,
+        date: completedSales[0].date
+      });
+    }
 
     // Crear mapa de ventas completadas por transactionId
     const completedMap = new Map<string, typeof completedSales[0]>();
@@ -233,6 +252,9 @@ export async function POST(req: NextRequest) {
 
     // Procesar ventas completadas que no tienen etiqueta de envío
     console.log(`💾 Guardando ${completedMap.size} ventas completadas sin etiqueta...`);
+    if (completedMap.size === 0 && completedSales.length > 0) {
+      console.log(`   ℹ️ Todas las ventas completadas ya tienen etiquetas de envío asociadas`);
+    }
     for (const [transactionId, completed] of completedMap) {
       try {
         if (!completed || !completed.messageId) {
@@ -256,37 +278,77 @@ export async function POST(req: NextRequest) {
 
         console.log(`💾 Guardando venta completada: ${completed.messageId} - ${completed.itemName}`);
 
-        try {
-          const result = await Sale.findOneAndUpdate(
-            { emailId: completed.messageId }, // Buscar por emailId
-            { $set: saleData },
-            { upsert: true, new: true }
-          );
+        // Primero verificar si la venta ya existe
+        let existingSale = await Sale.findOne({ emailId: completed.messageId });
+        
+        // Si no se encuentra por emailId, intentar por transactionId (puede que ya exista como venta pendiente)
+        if (!existingSale && completed.transactionId) {
+          existingSale = await Sale.findOne({ 
+            userId: user._id,
+            transactionId: completed.transactionId 
+          });
+          if (existingSale) {
+            console.log(`   🔍 Venta encontrada por transactionId: ${completed.transactionId}, actualizando...`);
+          }
+        }
 
-          if (result.createdAt?.getTime() === result.updatedAt?.getTime()) {
+        if (existingSale) {
+          // La venta ya existe, actualizarla
+          console.log(`   📝 Actualizando venta existente: ${existingSale._id}`);
+          const result = await Sale.findByIdAndUpdate(
+            existingSale._id,
+            { 
+              $set: {
+                ...saleData,
+                // No sobrescribir emailId si ya existe (es la clave primaria)
+                emailId: existingSale.emailId
+              }
+            },
+            { new: true }
+          );
+          if (result) {
+            updatedSales++;
+            console.log(`🔄 Venta completada actualizada: ${completed.messageId} (era ${existingSale.status}, ahora completed)`);
+          } else {
+            console.error(`❌ No se pudo actualizar venta: ${completed.messageId}`);
+            salesErrors++;
+          }
+        } else {
+          // La venta no existe, crearla
+          try {
+            const result = await Sale.create(saleData);
             newSales++;
             console.log(`✅ Nueva venta completada guardada: ${completed.messageId}`);
-          } else {
-            updatedSales++;
-            console.log(`🔄 Venta completada actualizada: ${completed.messageId}`);
-          }
-        } catch (duplicateError: any) {
-          // Manejar error de clave duplicada específicamente
-          if (duplicateError.code === 11000 || duplicateError.codeName === 'DuplicateKey') {
-            console.log(`⚠️ Venta duplicada detectada, actualizando: ${completed.messageId}`);
-            const result = await Sale.findOneAndUpdate(
-              { emailId: completed.messageId },
-              { $set: saleData },
-              { new: true }
-            );
-            if (result) {
-              updatedSales++;
-              console.log(`🔄 Venta duplicada actualizada: ${completed.messageId}`);
+          } catch (createError: any) {
+            // Si aún así falla por duplicado (race condition), intentar actualizar
+            if (createError.code === 11000 || createError.codeName === 'DuplicateKey') {
+              console.log(`   ⚠️ Error de duplicado al crear, intentando actualizar: ${completed.messageId}`);
+              const retrySale = await Sale.findOne({ emailId: completed.messageId });
+              if (retrySale) {
+                const result = await Sale.findByIdAndUpdate(
+                  retrySale._id,
+                  { $set: saleData },
+                  { new: true }
+                );
+                if (result) {
+                  updatedSales++;
+                  console.log(`🔄 Venta completada actualizada (retry): ${completed.messageId}`);
+                } else {
+                  console.error(`❌ No se pudo actualizar venta en retry: ${completed.messageId}`);
+                  salesErrors++;
+                }
+              } else {
+                console.error(`❌ Error de duplicado pero no se encontró la venta: ${completed.messageId}`);
+                console.error(`   🔍 Error details:`, {
+                  code: createError.code,
+                  keyPattern: createError.keyPattern,
+                  keyValue: createError.keyValue
+                });
+                salesErrors++;
+              }
             } else {
-              console.warn(`⚠️ No se pudo actualizar venta duplicada: ${completed.messageId}`);
+              throw createError;
             }
-          } else {
-            throw duplicateError; // Re-lanzar si es otro tipo de error
           }
         }
       } catch (err: any) {
@@ -399,7 +461,9 @@ export async function POST(req: NextRequest) {
     console.log(`   📧 Gastos: ${expenseMessageIds.length} correos encontrados`);
     console.log(`   💾 Gastos: ${newExpenses} nuevos, ${updatedExpenses} actualizados, ${expensesErrors} errores`);
 
-    // Update user's lastSyncAt
+    // Update user's lastSyncAt - usar la fecha ACTUAL al finalizar, no al inicio
+    // Esto asegura que no se pierdan emails que llegaron durante la sincronización
+    const lastSync = new Date();
     await User.findByIdAndUpdate(user._id, { lastSyncAt: lastSync });
     console.log(`   🕐 lastSyncAt actualizado: ${lastSync.toISOString()}`);
 
