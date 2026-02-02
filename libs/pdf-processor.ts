@@ -67,27 +67,27 @@ export async function cropPdfTo4x6(
 
   // Cargar el PDF original
   const srcDoc = await PDFDocument.load(pdfBuffer);
-  
+
   // Crear un nuevo documento para el resultado
   const destDoc = await PDFDocument.create();
-  
+
   // CASO ESPECIAL: INPOST requiere 6x4 horizontal que luego se rota 90° a 4x6 vertical
   const isInpost = carrier?.toLowerCase() === 'inpost';
   const isCorreos = carrier?.toLowerCase() === 'correos';
   const isSeur = carrier?.toLowerCase() === 'seur';
-  
+
   // Procesar cada página del PDF original
   for (let i = 0; i < srcDoc.getPageCount(); i++) {
     const srcPage = srcDoc.getPage(i);
     const { width: srcWidth, height: srcHeight } = srcPage.getSize();
-    
+
     // CORREOS: Solo rotar, sin recortar ni modificar contenido
     if (isCorreos) {
       const [embeddedPage] = await destDoc.embedPdf(srcDoc, [i]);
-      
+
       // Crear página con las mismas dimensiones del original
       const page = destDoc.addPage([srcWidth, srcHeight]);
-      
+
       // Dibujar la página completa sin modificaciones
       page.drawPage(embeddedPage, {
         x: 0,
@@ -95,16 +95,16 @@ export async function cropPdfTo4x6(
         width: srcWidth,
         height: srcHeight,
       });
-      
+
       // Rotar 90° en sentido horario
       page.setRotation(degrees(-90));
-      
+
       continue; // Saltar al siguiente ciclo
     }
-    
+
     // Determinar cropRect según el transportista
     let rect: CropRect;
-    
+
     if (cropRect) {
       // Si se proporciona explícitamente, usar ese
       rect = cropRect;
@@ -115,7 +115,7 @@ export async function cropPdfTo4x6(
       // - 50 pts desde abajo (aprox 0.69 pulgadas)
       const leftMargin = 75;
       const bottomMargin = 35;
-      
+
       rect = {
         left: leftMargin,
         bottom: bottomMargin,
@@ -139,25 +139,25 @@ export async function cropPdfTo4x6(
         top: srcHeight,
       };
     }
-    
+
     if (isInpost) {
       // ===== INPOST: RECORTE 6x4 HORIZONTAL DESDE INFERIOR IZQUIERDA =====
       // 
       // InPost usa etiquetas 6x4 pulgadas (432x288 pts) en formato HORIZONTAL
       // Se recorta desde la esquina inferior izquierda con márgenes optimizados
-      
+
       const [embeddedPage] = await destDoc.embedPdf(srcDoc, [i]);
-      
+
       const cropWidth = rect.right - rect.left;   // 432 pts (6")
       const cropHeight = rect.top - rect.bottom;  // 288 pts (4")
-      
+
       // Crear página 6x4 HORIZONTAL
       const page = destDoc.addPage([TARGET_HEIGHT, TARGET_WIDTH]); // 432x288 = 6x4
-      
+
       // Calcular escala para el cropping
       const scaleX = TARGET_HEIGHT / cropWidth;
       const scaleY = TARGET_WIDTH / cropHeight;
-      
+
       // Dibujar el contenido recortado desde inferior izquierda
       page.drawPage(embeddedPage, {
         x: -rect.left * scaleX,
@@ -165,23 +165,26 @@ export async function cropPdfTo4x6(
         width: srcWidth * scaleX,
         height: srcHeight * scaleY,
       });
-      
+
+      // Rotar 90° en sentido antihorario para que quede vertical (4x6)
+      page.setRotation(degrees(-90));
+
     } else {
       // ===== OTROS TRANSPORTISTAS: MÉTODO NORMAL CON EMBEDPDF =====
-      
+
       const [embeddedPage] = await destDoc.embedPdf(srcDoc, [i]);
-      
+
       // Obtener dimensiones del área que queremos recortar
       const cropWidth = rect.right - rect.left;
       const cropHeight = rect.top - rect.bottom;
-      
+
       // Crear página 4x6 vertical
       const page = destDoc.addPage([TARGET_WIDTH, TARGET_HEIGHT]);
-      
+
       // CROPPING normal desde superior izquierda
       const scaleX = TARGET_WIDTH / cropWidth;
       const scaleY = TARGET_HEIGHT / cropHeight;
-      
+
       page.drawPage(embeddedPage, {
         x: -rect.left * scaleX,
         y: -rect.bottom * scaleY,
@@ -190,7 +193,7 @@ export async function cropPdfTo4x6(
       });
     }
   }
-  
+
   // Guardar y retornar el PDF recortado
   const pdfBytes = await destDoc.save();
   return Buffer.from(pdfBytes);
@@ -212,7 +215,7 @@ export async function convertBase64UrlPdfTo4x6(
   // Convertir base64url a base64
   const base64 = base64urlData.replace(/-/g, '+').replace(/_/g, '/');
   const buffer = Buffer.from(base64, 'base64');
-  
+
   // Recortar el PDF a 4x6 (con tratamiento especial para InPost)
   return await cropPdfTo4x6(buffer, cropRect, carrier);
 }
