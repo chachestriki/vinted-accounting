@@ -1,4 +1,46 @@
-import { PDFDocument, degrees } from 'pdf-lib';
+import { PDFDocument, degrees, StandardFonts, rgb } from 'pdf-lib';
+
+/**
+ * Configure item name text position and style.
+ * Measurements in points (1 inch = 72 pts).
+ * Origin (0,0) is bottom-left of the page (before any page rotation).
+ */
+export const LABEL_FONT_SIZE = 10;
+
+export const LABEL_TEXT_CONFIG = {
+  inpost: {
+    x: 180, // Right side of 6x4 page (becomes top of 4x6)
+    y: 270,  // Bottom of 6x4 page (becomes right of 4x6)
+    // To make it appear horizontal on the final vertical label:
+    // Page is rotated -90 (CW).
+    // Text needs to run "Up" (90 deg) in the original 6x4 space.
+    rotation: -90
+  },
+  correos: {
+    x: 40,
+    y: 100,
+    // Page is rotated -90. Vertical text requested.
+    // 0 degree text on original page becomes vertical on rotated page.
+    rotation: 0
+  },
+  seur: {
+    x: 40,
+    y: 20,
+    // Page is standard 4x6 (Vertical). Vertical text requested.
+    rotation: 90
+  },
+  vintedgo: {
+    x: 20,
+    y: 100,
+    // Page is standard 4x6 (Vertical). Horizontal text requested.
+    rotation: 0
+  },
+  default: {
+    x: 20,
+    y: 20,
+    rotation: 0
+  }
+};
 
 /**
  * Define el área de recorte en un PDF
@@ -37,29 +79,14 @@ export type ShippingCarrier = "correos" | "inpost" | "seur" | "vintedgo" | "unkn
  * @param pdfBuffer - Buffer del PDF original (típicamente A4: 595x842 pts)
  * @param cropRect - Opcional: región específica a recortar. Si no se proporciona, usa default por transportista
  * @param carrier - Opcional: transportista (determina el tipo de recorte y transformaciones)
+ * @param itemName - Opcional: nombre del artículo para imprimir en la etiqueta
  * @returns Buffer del PDF recortado a 4x6 vertical
- * 
- * @example
- * // Recortar 4x6 vertical desde esquina superior izquierda (default)
- * const cropped = await cropPdfTo4x6(pdfBuffer);
- * 
- * @example
- * // Recortar etiqueta InPost: 6x4 horizontal desde inferior izquierda
- * const cropped = await cropPdfTo4x6(pdfBuffer, undefined, "inpost");
- * 
- * @example
- * // Recortar región específica centrada
- * const cropped = await cropPdfTo4x6(pdfBuffer, {
- *   left: 153.5,   // centrado horizontalmente en A4
- *   bottom: 205,   // centrado verticalmente en A4
- *   right: 441.5,  // 153.5 + 288 (4")
- *   top: 637       // 205 + 432 (6")
- * });
  */
 export async function cropPdfTo4x6(
   pdfBuffer: Buffer,
   cropRect?: CropRect,
-  carrier?: ShippingCarrier
+  carrier?: ShippingCarrier,
+  itemName?: string
 ): Promise<Buffer> {
   // Dimensiones de 4x6 pulgadas en puntos (1 pulgada = 72 puntos)
   const TARGET_WIDTH = 4 * 72;   // 288 puntos
@@ -71,10 +98,23 @@ export async function cropPdfTo4x6(
   // Crear un nuevo documento para el resultado
   const destDoc = await PDFDocument.create();
 
+  // Embed standard font if item name is provided
+  let font;
+  if (itemName) {
+    font = await destDoc.embedFont(StandardFonts.Helvetica);
+  }
+
   // CASO ESPECIAL: INPOST requiere 6x4 horizontal que luego se rota 90° a 4x6 vertical
   const isInpost = carrier?.toLowerCase() === 'inpost';
   const isCorreos = carrier?.toLowerCase() === 'correos';
   const isSeur = carrier?.toLowerCase() === 'seur';
+
+  // Configuración de texto para este carrier
+  // Evitar problemas de tipos accediendo de forma segura
+  const carrierKey = carrier as keyof typeof LABEL_TEXT_CONFIG;
+  const textConfig = (carrierKey && LABEL_TEXT_CONFIG[carrierKey])
+    ? LABEL_TEXT_CONFIG[carrierKey]
+    : LABEL_TEXT_CONFIG.default;
 
   // Procesar cada página del PDF original
   for (let i = 0; i < srcDoc.getPageCount(); i++) {
@@ -95,6 +135,18 @@ export async function cropPdfTo4x6(
         width: srcWidth,
         height: srcHeight,
       });
+
+      // Imprimir nombre del artículo si existe
+      if (itemName && font) {
+        page.drawText(itemName, {
+          x: textConfig.x,
+          y: textConfig.y,
+          size: LABEL_FONT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+          rotate: degrees(textConfig.rotation),
+        });
+      }
 
       // Rotar 90° en sentido horario
       page.setRotation(degrees(-90));
@@ -166,6 +218,18 @@ export async function cropPdfTo4x6(
         height: srcHeight * scaleY,
       });
 
+      // Imprimir nombre del artículo si existe (antes de rotar la página)
+      if (itemName && font) {
+        page.drawText(itemName, {
+          x: textConfig.x,
+          y: textConfig.y,
+          size: LABEL_FONT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+          rotate: degrees(textConfig.rotation),
+        });
+      }
+
       // Rotar 90° en sentido antihorario para que quede vertical (4x6)
       page.setRotation(degrees(-90));
 
@@ -191,6 +255,18 @@ export async function cropPdfTo4x6(
         width: srcWidth * scaleX,
         height: srcHeight * scaleY,
       });
+
+      // Imprimir nombre del artículo si existe
+      if (itemName && font) {
+        page.drawText(itemName, {
+          x: textConfig.x,
+          y: textConfig.y,
+          size: LABEL_FONT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+          rotate: degrees(textConfig.rotation),
+        });
+      }
     }
   }
 
@@ -205,19 +281,21 @@ export async function cropPdfTo4x6(
  * @param base64urlData - Datos en formato base64url de Gmail
  * @param cropRect - Opcional: región específica a recortar
  * @param carrier - Opcional: transportista (determina el tipo de recorte y transformaciones)
+ * @param itemName - Opcional: nombre del artículo para imprimir en la etiqueta
  * @returns Buffer del PDF recortado a 4x6 vertical
  */
 export async function convertBase64UrlPdfTo4x6(
   base64urlData: string,
   cropRect?: CropRect,
-  carrier?: ShippingCarrier
+  carrier?: ShippingCarrier,
+  itemName?: string
 ): Promise<Buffer> {
   // Convertir base64url a base64
   const base64 = base64urlData.replace(/-/g, '+').replace(/_/g, '/');
   const buffer = Buffer.from(base64, 'base64');
 
   // Recortar el PDF a 4x6 (con tratamiento especial para InPost)
-  return await cropPdfTo4x6(buffer, cropRect, carrier);
+  return await cropPdfTo4x6(buffer, cropRect, carrier, itemName);
 }
 
 /**

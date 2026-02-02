@@ -69,9 +69,10 @@ export async function GET(req: NextRequest) {
       }
 
       labelMessageId = sale.labelMessageId;
-      
+
       // Guardar el carrier para pasarlo al procesador de PDF
       var shippingCarrier = sale.shippingCarrier;
+      var itemName = sale.itemName;
     }
 
     let accessToken = session.accessToken;
@@ -161,9 +162,10 @@ export async function GET(req: NextRequest) {
     // Convert base64url to base64, then to buffer, and convert to 4x6 inches
     // Para InPost, se recortará 6x4 y se rotará 90°
     const convertedBuffer = await convertBase64UrlPdfTo4x6(
-      attachmentData, 
-      undefined, 
-      shippingCarrier as any
+      attachmentData,
+      undefined,
+      shippingCarrier as any,
+      itemName
     );
 
     // Return PDF file
@@ -208,7 +210,7 @@ export async function POST(req: NextRequest) {
 
     if (!saleIds || !Array.isArray(saleIds) || saleIds.length === 0) {
       return NextResponse.json(
-        { error: "Sale IDs array is required" },
+        { error: "Sale ID array is required" },
         { status: 400 }
       );
     }
@@ -310,6 +312,7 @@ export async function POST(req: NextRequest) {
               filename,
               data: attachmentResponse.data.data,
               carrier: sale.shippingCarrier,
+              itemName: sale.itemName
             };
           }
         }
@@ -321,7 +324,7 @@ export async function POST(req: NextRequest) {
     });
 
     const labelResults = await Promise.all(labelPromises);
-    const labels = labelResults.filter(label => label !== null) as Array<{ saleId: string; filename: string; data: string; carrier?: any }>;
+    const labels = labelResults.filter(label => label !== null) as Array<{ saleId: string; filename: string; data: string; carrier?: any; itemName?: string }>;
 
     if (labels.length === 0) {
       return NextResponse.json(
@@ -339,7 +342,8 @@ export async function POST(req: NextRequest) {
         const convertedBuffer = await convertBase64UrlPdfTo4x6(
           label.data,
           undefined,
-          label.carrier as any
+          label.carrier as any,
+          label.itemName
         );
 
         // Cargar el PDF convertido
