@@ -26,9 +26,9 @@ const features = [
     title: "Control de pedidos y ventas",
     description:
       "Todo lo que vendes, siempre registrado y actualizado automáticamente.",
-    type: "video",
-    path: "https://d3m8mk7e1mf7xn.cloudfront.net/app/newsletter.webm",
-    format: "video/webm",
+    type: "image",
+    path: "/dashboard.png",
+    alt: "Dashboard",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -50,8 +50,8 @@ const features = [
     description:
       "Nunca más olvides un gasto ni falsees tus beneficios.",
     type: "image",
-    path: "/pexels-pixabay-53621.jpg",
-    alt: "A computer",
+    path: "/gastos.png",
+    alt: "Gastos",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -74,8 +74,8 @@ const features = [
     description:
       "Imprime tus etiquetas, en función de tu compañía de envío.",
     type: "image",
-    path: "/impresora.jpg",
-    alt: "Impresora",
+    path: "/ventas-et.png",
+    alt: "Ventas y etiquetas",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -98,8 +98,8 @@ const features = [
     description:
       "Sabe qué tienes, qué se vende y qué te está inmovilizando dinero.",
     type: "image",
-    path: "/inventory.jpg",
-    alt: "Inventario",
+    path: "/inventario.png",
+    alt: "Control de inventario",
     svg: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -173,7 +173,7 @@ const Item = ({
 // Video are set to autoplay for best UX.
 const Media = ({ feature }: { feature: Feature }) => {
   const { type, path, format, alt } = feature;
-  const style = "rounded-2xl aspect-square w-full sm:w-[26rem]";
+  const style = "rounded-2xl w-full";
   const size = {
     width: 500,
     height: 500,
@@ -199,7 +199,7 @@ const Media = ({ feature }: { feature: Feature }) => {
       <Image
         src={path}
         alt={alt}
-        className={`${style} object-cover object-center`}
+        className={`${style} object-contain`}
         width={size.width}
         height={size.height}
       />
@@ -220,7 +220,7 @@ const FeaturesAccordion = () => {
       id="features"
     >
       <div className="px-8">
-        <h2 className="font-extrabold text-4xl lg:text-6xl tracking-tight mb-12 md:mb-24">
+        <h2 className="font-extrabold text-4xl lg:text-6xl tracking-tight mb-12 md:mb-20">
           Vintflow
           <span className="bg-neutral text-neutral-content px-2 md:px-4 ml-1 md:ml-1.5 leading-relaxed whitespace-nowrap">
             pone orden
@@ -228,8 +228,8 @@ const FeaturesAccordion = () => {
           a tu negocio de reventa
 
         </h2>
-        <div className=" flex flex-col md:flex-row gap-12 md:gap-24">
-          <div className="grid grid-cols-1 items-stretch gap-8 sm:gap-12 lg:grid-cols-2 lg:gap-20">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-12">
             <ul className="w-full">
               {features.map((feature, i) => (
                 <Item
@@ -242,7 +242,9 @@ const FeaturesAccordion = () => {
               ))}
             </ul>
 
-            <Media feature={features[featureSelected]} key={featureSelected} />
+            <div className="w-full flex items-start justify-center">
+              <Media feature={features[featureSelected]} key={featureSelected} />
+            </div>
           </div>
         </div>
       </div>
