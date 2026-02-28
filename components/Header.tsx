@@ -18,6 +18,10 @@ const links: {
     label: "Precio",
   },
   {
+    href: "/documentation",
+    label: "Documentación",
+  },
+  {
     href: "/#testimonials",
     label: "Testimonios",
   },
