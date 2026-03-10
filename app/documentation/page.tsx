@@ -96,7 +96,7 @@ const docSections: DocSection[] = [
       "Página destinada a centralizar configuraciones del usuario y de la app.",
       "Actualmente muestra base informativa y está preparada para ampliación."
     ],
-    screenshotHint: "Añadir captura de la pantalla de ajustes actual.",
+    screenshotHint: "",
   }
 ];
 
