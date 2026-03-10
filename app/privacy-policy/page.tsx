@@ -78,31 +78,67 @@ Non-Personal Data
 
 We use web cookies and similar technologies to gather non-personal information such as browser type, device details, and site usage statistics.
 
-2. Purpose of Data Collection
 
-We collect and process your data solely for the purpose of order processing, including confirming purchases, providing access to your downloads, and communicating with you about your order.
+2. Google User Data
 
-3. Data Sharing
+If you choose to connect your Google account, Vintflow may request read-only access to certain Gmail data through the Gmail API. This may include email metadata such as sender, subject, timestamps, and email content when necessary to provide the application's functionality.
 
-We do not share, sell, or distribute your personal data to any third parties.
+This access is strictly read-only. Vintflow does not send emails, delete emails, or modify your mailbox in any way.
 
-4. Data Security
+Non-Personal Data
 
-We take reasonable measures to protect your information from unauthorized access, alteration, or disclosure.
+We use web cookies and similar technologies to gather non-personal information such as browser type, device details, and site usage statistics.
 
-5. Children’s Privacy
+
+3. Purpose of Data Collection
+
+We collect and process your data for the following purposes:
+
+Processing purchases and providing access to digital downloads  
+Providing the core functionality of the Vintflow service  
+Improving application performance and user experience  
+Communicating with you about purchases, updates, or support
+
+Google user data is accessed only to provide the functionality of the application and is not used for advertising or unrelated purposes.
+
+4. Use of Google API Data
+
+Vintflow’s use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
+
+Google user data is only used to provide or improve the application's functionality and is never sold, shared, or used for advertising purposes.
+
+5. Data Sharing
+
+We do not sell, trade, or distribute your personal data or Google user data to any third parties.
+
+Data may be shared with trusted service providers only when necessary to operate the service, such as payment processors handling secure payment transactions.
+
+4. Data Storage and Retention
+
+We retain personal data only for as long as necessary to provide our services, comply with legal obligations, and maintain system security.
+
+Users may request deletion of their data at any time by contacting us.
+
+If you disconnect your Google account from Vintflow, we will no longer access your Gmail data.
+
+6. Data Security
+
+We take reasonable technical and organizational measures to protect your information from unauthorized access, alteration, or disclosure. These measures include secure HTTPS encryption, restricted system access, and secure server infrastructure.
+
+
+7. Children’s Privacy
 
 We do not knowingly collect personal information from children. If we become aware that we have received information from a child, we will delete it promptly.
 
-6. Cookies
+8. Cookies
 
 Cookies are used to enhance user experience and analyze website usage. You may disable cookies through your browser settings, though some features of the Website may not function properly.
 
-7. Updates to This Privacy Policy
+9. Updates to This Privacy Policy
 
 We may update this Privacy Policy periodically. If changes are made, users will be notified by email using the address provided during their purchase.
 
-8. Contact
+10. Contact
 
 If you have any questions or concerns regarding this Privacy Policy, please contact us at:
 vintflow@gmail.com
