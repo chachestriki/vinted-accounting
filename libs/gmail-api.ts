@@ -546,6 +546,19 @@ export async function getExpenseDetails(
     let bodyText = extractTextFromMessage(message);
     const text = bodyText || message.snippet || "";
 
+    // Exclude sale/transfer emails - they mention "armario" but are not expenses
+    const saleIndicators = [
+      "transferencia a tu saldo",
+      "transferido a tu saldo",
+      "la transacción se ha completado",
+      "etiqueta de envío",
+      "has vendido",
+    ];
+    const textToCheck = (text + " " + subject).toLowerCase();
+    if (saleIndicators.some((ind) => textToCheck.includes(ind))) {
+      return null; // This is a sale email, not an expense
+    }
+
     // Parse category
     const category = parseExpenseCategory(text, subject);
 
