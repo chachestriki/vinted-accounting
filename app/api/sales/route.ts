@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 // GET - Obtener todas las ventas del usuario desde MongoDB (SIN LÍMITE)
 export async function GET(req: NextRequest) {
   try {
-    const { verifyUserAccess } = await import("@/libs/auth-helpers");
-    const authResult = await verifyUserAccess();
+    const { verifyUserSession } = await import("@/libs/auth-helpers");
+    const authResult = await verifyUserSession();
 
     if ("error" in authResult) {
       return NextResponse.json(

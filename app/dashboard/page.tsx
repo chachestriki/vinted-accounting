@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  Eye,
   Download,
-  Plus,
-  Grid3X3,
   ChevronDown,
   RefreshCw,
   Calendar,
   Filter,
+  ArrowUpCircle,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 import MetricCard from "@/components/MetricCard";
 import DateFilter, { type DateRange } from "@/components/DateFilter";
 import SalesChart from "@/components/SalesChart";
@@ -74,6 +74,8 @@ interface ExpensesData {
 }
 
 export default function Dashboard() {
+  const { data: session } = useSession();
+  const hasAccess = session?.user?.hasAccess ?? false;
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [expensesData, setExpensesData] = useState<ExpensesData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -465,27 +467,39 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg">
-              <button
-                onClick={() => syncSales(false)}
-                disabled={syncing || loading}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 rounded-l-lg border-r border-gray-200"
-              >
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Sincronizando...' : 'Sincronizar'}
-              </button>
-              <div className="dropdown dropdown-end">
-                <div tabIndex={0} role="button" className="p-2 hover:bg-gray-50 rounded-r-lg disabled:opacity-50" style={{ pointerEvents: syncing ? "none" : "auto" }}>
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+            <div className="flex items-center gap-2">
+              {hasAccess ? (
+                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg">
+                  <button
+                    onClick={() => syncSales(false)}
+                    disabled={syncing || loading}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 rounded-l-lg border-r border-gray-200"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Sincronizando...' : 'Sincronizar'}
+                  </button>
+                  <div className="dropdown dropdown-end">
+                    <div tabIndex={0} role="button" className="p-2 hover:bg-gray-50 rounded-r-lg disabled:opacity-50" style={{ pointerEvents: syncing ? "none" : "auto" }}>
+                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    </div>
+                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-gray-100 mt-1">
+                      <li>
+                        <button onClick={() => syncSales(true)} className="text-gray-700">
+                          Forzar Sincronización Completa
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
-                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-gray-100 mt-1">
-                  <li>
-                    <button onClick={() => syncSales(true)} className="text-gray-700">
-                      Forzar Sincronización Completa
-                    </button>
-                  </li>
-                </ul>
-              </div>
+              ) : (
+                <Link
+                  href="/#pricing"
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors rounded-lg"
+                >
+                  <ArrowUpCircle className="w-4 h-4" />
+                  Upgrade to synchronize
+                </Link>
+              )}
             </div>
             <button
               onClick={exportToCSV}

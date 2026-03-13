@@ -8,6 +8,10 @@ declare module "next-auth" {
     accessTokenExpires?: number;
     error?: string;
   }
+
+  interface User {
+    hasAccess?: boolean;
+  }
 }
 
 declare module "next-auth/jwt" {

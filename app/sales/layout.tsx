@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/libs/next-auth";
 import config from "@/config";
 import AuthenticatedLayout from "@/components/AuthenticatedLayout";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
 
+// All logged-in users can access sales. hasAccess only restricts sync feature.
 export default async function SalesLayout({
   children,
 }: {
@@ -15,14 +14,6 @@ export default async function SalesLayout({
 
   if (!session) {
     redirect(config.auth.loginUrl);
-  }
-
-  // Check if user has paid access
-  await connectMongo();
-  const user = await User.findOne({ email: session.user?.email });
-
-  if (!user?.hasAccess) {
-    redirect("/#pricing");
   }
 
   return <AuthenticatedLayout>{children}</AuthenticatedLayout>;

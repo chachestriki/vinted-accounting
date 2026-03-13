@@ -4,10 +4,15 @@ import EmailProvider from "next-auth/providers/email";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
+import connectMongoose from "./mongoose";
+import User from "@/models/User";
 
 export const authOptions = {
   // Set any random key in .env.local
   secret: process.env.NEXTAUTH_SECRET,
+  // Required for production deployments behind reverse proxy (Vercel, etc.)
+  // Prevents "Host must be trusted" / server configuration errors
+  trustHost: true,
   providers: [
     GoogleProvider({
       // Follow the "Login with Google" tutorial to get your credentials
@@ -112,6 +117,14 @@ export const authOptions = {
         session.refreshToken = token.refreshToken;
         session.accessTokenExpires = token.accessTokenExpires;
         session.error = token.error;
+        // Add hasAccess for sync feature gating (fetched from DB)
+        try {
+          await connectMongoose();
+          const user = await User.findOne({ email: session.user.email });
+          session.user.hasAccess = user?.hasAccess ?? false;
+        } catch {
+          session.user.hasAccess = false;
+        }
       }
       return session;
     },

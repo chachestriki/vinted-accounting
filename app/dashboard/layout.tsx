@@ -3,15 +3,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/libs/next-auth";
 import config from "@/config";
 import Sidebar from "@/components/Sidebar";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
 
-// This is a server-side component to ensure the user is logged in AND has paid.
-// If not logged in, it will redirect to the login page.
-// If logged in but hasn't paid, it will redirect to pricing page.
-// It's applied to all subpages of /dashboard in /app/dashboard/*** pages
-// You can also add custom static UI elements like a Navbar, Sidebar, Footer, etc..
-// See https://shipfa.st/docs/tutorials/private-page
+// Server-side layout: ensures user is logged in. All users can access the dashboard.
+// hasAccess only restricts sync feature (Gmail synchronization) - see sync API routes.
 export default async function LayoutPrivate({
   children,
 }: {
@@ -21,14 +15,6 @@ export default async function LayoutPrivate({
 
   if (!session) {
     redirect(config.auth.loginUrl);
-  }
-
-  // Check if user has paid access
-  await connectMongo();
-  const user = await User.findOne({ email: session.user?.email });
-
-  if (!user?.hasAccess) {
-    redirect("/#pricing");
   }
 
   return (

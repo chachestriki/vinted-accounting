@@ -67,6 +67,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Sync requires paid subscription
+    if (!user.hasAccess) {
+      return NextResponse.json(
+        { error: "Upgrade to synchronize - Please subscribe to use Gmail synchronization" },
+        { status: 403 }
+      );
+    }
+
     let accessToken = session.accessToken;
 
     // Refresh token if expired
