@@ -45,13 +45,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Sync requires paid subscription (bypassed when BYPASS_PAYMENT_FOR_VERIFICATION=true for Google OAuth verification)
-    if (process.env.BYPASS_PAYMENT_FOR_VERIFICATION !== "true" && !user.hasAccess) {
-      return NextResponse.json(
-        { error: "Upgrade to synchronize - Please subscribe to use Gmail synchronization" },
-        { status: 403 }
-      );
-    }
 
     let accessToken = session.accessToken;
 

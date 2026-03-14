@@ -7,10 +7,7 @@ import {
   RefreshCw,
   Calendar,
   Filter,
-  ArrowUpCircle,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
-import Link from "next/link";
 import MetricCard from "@/components/MetricCard";
 import DateFilter, { type DateRange } from "@/components/DateFilter";
 import SalesChart from "@/components/SalesChart";
@@ -74,8 +71,6 @@ interface ExpensesData {
 }
 
 export default function Dashboard() {
-  const { data: session } = useSession();
-  const hasAccess = session?.user?.hasAccess ?? false;
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [expensesData, setExpensesData] = useState<ExpensesData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -468,8 +463,7 @@ export default function Dashboard() {
             )}
 
             <div className="flex items-center gap-2">
-              {hasAccess ? (
-                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg">
                   <button
                     onClick={() => syncSales(false)}
                     disabled={syncing || loading}
@@ -491,15 +485,6 @@ export default function Dashboard() {
                     </ul>
                   </div>
                 </div>
-              ) : (
-                <Link
-                  href="/#pricing"
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors rounded-lg"
-                >
-                  <ArrowUpCircle className="w-4 h-4" />
-                  Upgrade to synchronize
-                </Link>
-              )}
             </div>
             <button
               onClick={exportToCSV}

@@ -4,8 +4,6 @@ import EmailProvider from "next-auth/providers/email";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import config from "@/config";
 import connectMongo from "./mongo";
-import connectMongoose from "./mongoose";
-import User from "@/models/User";
 
 export const authOptions = {
   // Set any random key in .env.local
@@ -117,19 +115,8 @@ export const authOptions = {
         session.refreshToken = token.refreshToken;
         session.accessTokenExpires = token.accessTokenExpires;
         session.error = token.error;
-        // Add hasAccess for sync feature gating (fetched from DB)
-        // When BYPASS_PAYMENT_FOR_VERIFICATION=true, grant access to all users (for Google OAuth verification)
-        if (process.env.BYPASS_PAYMENT_FOR_VERIFICATION === "true") {
-          session.user.hasAccess = true;
-        } else {
-          try {
-            await connectMongoose();
-            const user = await User.findOne({ email: session.user.email });
-            session.user.hasAccess = user?.hasAccess ?? false;
-          } catch {
-            session.user.hasAccess = false;
-          }
-        }
+        // All users have sync access
+        session.user.hasAccess = true;
       }
       return session;
     },
