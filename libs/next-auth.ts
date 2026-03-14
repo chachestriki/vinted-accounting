@@ -118,12 +118,17 @@ export const authOptions = {
         session.accessTokenExpires = token.accessTokenExpires;
         session.error = token.error;
         // Add hasAccess for sync feature gating (fetched from DB)
-        try {
-          await connectMongoose();
-          const user = await User.findOne({ email: session.user.email });
-          session.user.hasAccess = user?.hasAccess ?? false;
-        } catch {
-          session.user.hasAccess = false;
+        // When BYPASS_PAYMENT_FOR_VERIFICATION=true, grant access to all users (for Google OAuth verification)
+        if (process.env.BYPASS_PAYMENT_FOR_VERIFICATION === "true") {
+          session.user.hasAccess = true;
+        } else {
+          try {
+            await connectMongoose();
+            const user = await User.findOne({ email: session.user.email });
+            session.user.hasAccess = user?.hasAccess ?? false;
+          } catch {
+            session.user.hasAccess = false;
+          }
         }
       }
       return session;
